@@ -1,0 +1,16 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+/tmp
+/config/*.secret.exs
+/.idea
+.elixir_ls/
+
+*.ez
+*.beam
+
+tdenginex-*.tar
+
+erl_crash.dump
