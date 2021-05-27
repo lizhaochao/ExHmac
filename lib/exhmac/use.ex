@@ -2,28 +2,21 @@ defmodule ExHmac.Use do
   @moduledoc false
 
   alias ExHmac.Const
-  alias ExHmac.Signer
-  alias ExHmac.Checker
-
-  alias ExHmac.Use, as: Self
 
   @default_access_key_name Const.default_access_key_name()
-  @default_secret_key_name Const.default_secret_key_name()
-  @default_signature_name Const.default_signature_name()
 
-  defmacro __using__(opts) do
-    """
-      args type: map, keyword, multi args
-      check timestamp, can custom impl
-      check nonce, can custom impl
+  @doc """
+    args type: map, keyword, multi args
+    check timestamp, can custom impl
+    check nonce, can custom impl
 
-      2. make args (keyword type)
-      3. check timestamp (1.get 2.check)
-      4. check nonce (1.get 2.check)
-      5. make sign string (1.get access key 2.get secret key 3.make)
-      6. sign
-    """
-
+    2. make args (keyword type)
+    3. check timestamp (1.get 2.check)
+    4. check nonce (1.get 2.check)
+    5. make sign string (1.get access key 2.get secret key 3.make)
+    6. sign
+  """
+  defmacro __using__(_opts) do
     :ok
   end
 
