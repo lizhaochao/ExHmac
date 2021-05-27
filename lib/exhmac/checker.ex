@@ -21,13 +21,13 @@ defmodule ExHmac.Checker do
     end
   end
 
-  def check_timestamp(_, _, _), do: raise("check_timestamp error")
+  def check_timestamp(_, _, _), do: raise(Error, "check timestamp error")
 
   def do_check_timestamp(curr_ts, ts, offset) when abs(curr_ts - ts) < offset, do: :ok
   def do_check_timestamp(_curr_ts, _ts, _offset), do: :timestamp_out_of_range
 
   def get_offset(:millisecond, default), do: default * 1000
-  def get_offset(_precision, default), do: default
+  def get_offset(_prec, default), do: default
 
   def warn_offset(curr_ts, ts, radio, true) when abs(curr_ts / ts) < radio, do: :should_warn
   def warn_offset(_, _, _, _warn), do: :ignore
@@ -42,7 +42,7 @@ defmodule ExHmac.Checker do
     end
   end
 
-  def check_nonce(_), do: raise("check_nonce error")
+  def check_nonce(_), do: raise(Error, "check nonce error")
 
   def do_check_nonce(_curr_ts, nil = _created_at, _ttl), do: :ok
   def do_check_nonce(curr_ts, created_at, ttl) when curr_ts - created_at > ttl, do: :ok
@@ -58,7 +58,7 @@ defmodule ExHmac.Checker do
   end
 
   ### Helper
-  defp get_curr_ts(precision \\ :second)
-  defp get_curr_ts(:millisecond), do: 123_000
-  defp get_curr_ts(_), do: 123
+  defp get_curr_ts(prec \\ :second)
+  defp get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)
+  defp get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
 end
