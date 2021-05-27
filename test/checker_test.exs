@@ -105,27 +105,44 @@ defmodule CheckerTest do
 
   ###
   describe "raise error" do
-    test "check_timestamp/3 error" do
+    test "check_timestamp/4 error" do
       [
-        {"123", ":millisecond", "true"},
-        {"123", :millisecond, true},
-        {1_622_115_000, ":millisecond", true},
-        {1_622_115_000, :millisecond, "true"}
+        {"123", ":millisecond", [], "true"},
+        {"123", :millisecond, %{}, true},
+        {1_622_115_000, ":millisecond", %{}, true},
+        {1_622_115_000, :millisecond, [], "true"},
+        {1_622_115_000, :millisecond, %{}, "true"}
       ]
-      |> Enum.each(fn {ts, precision, warn} ->
+      |> Enum.each(fn {ts, precision, opts, warn} ->
         assert_raise Error, fn ->
-          Checker.check_timestamp(ts, precision, warn)
+          Checker.check_timestamp(ts, precision, opts, warn)
         end
       end)
     end
 
-    test "check_nonce/3 error" do
-      [1, 1.1, :ok, %{}, [], {}, 1..2, fn -> nil end]
-      |> Enum.each(fn nonce ->
+    test "check_timestamp/4 opts error" do
+      assert_raise Error, fn ->
+        Checker.check_timestamp(123, :second, %{a: 1}, true)
+      end
+    end
+
+    test "check_nonce/2 error" do
+      [
+        {1, []},
+        {123, %{}},
+        {"a1h801", []}
+      ]
+      |> Enum.each(fn {nonce, opts} ->
         assert_raise Error, fn ->
-          Checker.check_nonce(nonce)
+          Checker.check_nonce(nonce, opts)
         end
       end)
+    end
+
+    test "check_nonce/2 opts error" do
+      assert_raise Error, fn ->
+        Checker.check_nonce("a1k8h1", %{b: 2})
+      end
     end
   end
 end
