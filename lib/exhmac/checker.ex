@@ -16,7 +16,7 @@ defmodule ExHmac.Checker do
          offset <- get_offset(precision, @default_timestamp_offset_seconds) do
       do_check_timestamp(curr_ts, ts, offset)
     else
-      :should_warn -> Error.warn(@warn_text)
+      :should_warn -> Error.warn(@warn_text, warn)
       err -> err
     end
   end
@@ -58,7 +58,7 @@ defmodule ExHmac.Checker do
   end
 
   ### Helper
-  defp get_curr_ts(prec \\ :second)
-  defp get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)
-  defp get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
+  def get_curr_ts(prec \\ :second)
+  def get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)
+  def get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
 end
