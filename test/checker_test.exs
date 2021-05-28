@@ -79,51 +79,18 @@ defmodule CheckerTest do
     end
   end
 
-  describe "get_curr_ts 0/1" do
-    test "second" do
-      with up_to_2050 <- 2_524_579_200,
-           curr <- 1_622_118_000,
-           result1 <- Checker.get_curr_ts(),
-           result2 <- Checker.get_curr_ts(:second) do
-        assert up_to_2050 > result1
-        assert result1 > curr
-
-        assert up_to_2050 > result2
-        assert result2 > curr
-      end
-    end
-
-    test "millisecond" do
-      with up_to_2050 <- 2_524_579_200_000,
-           curr <- 1_622_118_000_000,
-           result <- Checker.get_curr_ts(:millisecond) do
-        assert up_to_2050 > result
-        assert result > curr
-      end
-    end
-  end
-
   ###
   describe "raise error" do
     test "check_timestamp/4 error" do
       [
-        {"123", ":millisecond", [], "true"},
-        {"123", :millisecond, %{}, true},
-        {1_622_115_000, ":millisecond", %{}, true},
-        {1_622_115_000, :millisecond, [], "true"},
-        {1_622_115_000, :millisecond, %{}, "true"}
+        {1_622_115_000, []},
+        {"123", %{}}
       ]
-      |> Enum.each(fn {ts, precision, opts, warn} ->
+      |> Enum.each(fn {ts, opts} ->
         assert_raise Error, fn ->
-          Checker.check_timestamp(ts, precision, opts, warn)
+          Checker.check_timestamp(ts, opts)
         end
       end)
-    end
-
-    test "check_timestamp/4 opts error" do
-      assert_raise Error, fn ->
-        Checker.check_timestamp(123, :second, %{a: 1}, true)
-      end
     end
 
     test "check_nonce/2 error" do

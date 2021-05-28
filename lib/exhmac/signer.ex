@@ -9,7 +9,7 @@ defmodule ExHmac.Signer do
   def make_sign_string(args, access_key, secret_key, opts)
       when is_list(args) and is_bitstring(access_key) and is_bitstring(secret_key) and
              is_map(opts) do
-    with maker = do_make_sign_string(args, access_key, secret_key),
+    with maker <- do_make_sign_string(args, access_key, secret_key),
          %{
            access_key_name: access_key_name,
            secret_key_name: secret_key_name,
