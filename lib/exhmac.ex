@@ -32,27 +32,31 @@ defmodule ExHmac do
 
   def check_timestamp(args, opts) do
     with %{timestamp_name: timestamp_name} <- opts,
-         {timestamp, _} <- Keyword.pop(args, timestamp_name),
+         {timestamp, _} <- Keyword.pop(args, timestamp_name, 0),
+         true <- timestamp > 0,
          :ok = result <- Checker.check_timestamp(timestamp, opts) do
       result
     else
+      false -> :not_found_timestamp
       err -> err
     end
   end
 
   def check_nonce(args, opts) do
     with %{nonce_name: nonce_name} <- opts,
-         {nonce, _} <- Keyword.pop(args, nonce_name),
+         {nonce, _} <- Keyword.pop(args, nonce_name, ""),
+         true <- nonce != "",
          :ok = result <- Checker.check_nonce(nonce, opts) do
       result
     else
+      false -> :not_found_nonce
       err -> err
     end
   end
 
   def check_signature(args, access_key, secret_key, opts) do
     with %{signature_name: signature_name} <- opts,
-         {signature, _} <- Keyword.pop(args, signature_name),
+         {signature, _} when signature != "" <- Keyword.pop(args, signature_name, ""),
          my_signature <- sign(args, access_key, secret_key, opts),
          true <- signature == my_signature do
       :ok
