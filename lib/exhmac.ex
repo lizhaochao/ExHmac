@@ -9,8 +9,10 @@ defmodule ExHmac do
     opts = opts |> Config.get_config() |> Macro.escape()
 
     quote do
-      def check_hmac(args, access_key, secret_key) do
-        with args <- args |> Util.to_atom_key() |> Keyword.new(),
+      def check_hmac(args, access_key, secret_key)
+          when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
+                 is_bitstring(secret_key) do
+        with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
              opts <- unquote(opts),
              :ok <- Self.check_timestamp(args, opts),
              :ok <- Self.check_nonce(args, opts),
@@ -21,8 +23,14 @@ defmodule ExHmac do
         end
       end
 
-      def sign(args, access_key, secret_key) do
-        Self.sign(args, access_key, secret_key, unquote(opts))
+      def sign(args, access_key, secret_key)
+          when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
+                 is_bitstring(secret_key) do
+        with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
+             opts <- unquote(opts),
+             signature <- Self.sign(args, access_key, secret_key, opts) do
+          signature
+        end
       end
 
       def gen_timestamp(precision \\ :second), do: Util.get_curr_ts(precision)
@@ -54,7 +62,7 @@ defmodule ExHmac do
 
   def check_signature(args, access_key, secret_key, opts) do
     with %{signature_name: signature_name} <- opts,
-         {signature, args} when signature != "" <- Keyword.pop(args, signature_name, ""),
+         {signature, args} when not is_nil(signature) <- Keyword.pop(args, signature_name),
          my_signature <- sign(args, access_key, secret_key, opts),
          true <- signature == my_signature do
       :ok
