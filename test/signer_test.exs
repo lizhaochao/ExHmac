@@ -112,20 +112,36 @@ defmodule SignerTest do
     end
   end
 
+  describe "do_sign 2/3" do
+    test "ok" do
+      assert "61964c398979755b435ffe9981bd175c8a3e7daaf09ffd52422294b1a1e76f09" ==
+               Signer.do_sign("ljy", :sha256)
+
+      assert "76d3a8719054c21f6944799065896f9143ab56870dbe11586d41aaa7c9b3df7c" ==
+               Signer.do_sign("ljy", :sha256, "key")
+    end
+
+    test "not support hash alg" do
+      assert_raise Error, fn ->
+        Signer.do_sign("ljy", :sha224)
+      end
+    end
+  end
+
   describe "hash alg" do
     test "sha512" do
       assert "cf7714c083ef44353f89a8e868565105b16512e818d506fa1774229caac2bc19826f8525d8bcb7e8c0348e6da7748042cd03f7c359c55745449a7fc8eeda2dd9" ==
-               Signer.sha512("lijiayou")
+               Signer.hash("lijiayou", :sha512)
     end
 
     test "sha256" do
       assert "7efcc5df369912858013766d3654b625cd4f4c45785d0c1053d1c631903fa926" ==
-               Signer.sha256("lijiayou")
+               Signer.hash("lijiayou", :sha256)
     end
 
     test "md5" do
       assert "345fd9af7881b9d1c5f950fcc8e1c8b0" ==
-               Signer.md5("lijiayou")
+               Signer.hash("lijiayou", :md5)
     end
   end
 end

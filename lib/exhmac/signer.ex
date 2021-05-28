@@ -3,6 +3,8 @@ defmodule ExHmac.Signer do
 
   alias ExHmac.Error
 
+  @support_hash_algs [:sha512, :sha256, :md5]
+
   ###
   def make_sign_string(args, access_key, secret_key, opts)
       when is_list(args) and is_bitstring(access_key) and is_bitstring(secret_key) and
@@ -46,23 +48,23 @@ defmodule ExHmac.Signer do
   end
 
   ###
-  def do_sign(sign_string, alg) when is_bitstring(sign_string) and is_atom(alg) do
-    case alg do
-      :sha512 -> sha512(sign_string)
-      :md5 -> md5(sign_string)
-      _ -> sha256(sign_string)
-    end
+  def do_sign(sign_string, alg, access_key \\ nil)
+
+  def do_sign(sign_string, alg, access_key)
+      when is_bitstring(sign_string) and alg in @support_hash_algs and
+             (is_nil(access_key) or is_bitstring(access_key)) do
+    hash(sign_string, alg, access_key)
   end
 
-  def sha512(term) when is_bitstring(term) do
-    :sha512 |> :crypto.hash(term) |> Base.encode16(case: :lower)
+  def do_sign(_sign_string, alg, _access_key) when alg not in @support_hash_algs do
+    raise Error, "not support hash alg: #{inspect(alg)}"
   end
 
-  def sha256(term) when is_bitstring(term) do
-    :sha256 |> :crypto.hash(term) |> Base.encode16(case: :lower)
-  end
+  def do_sign(_, _, _), do: raise(Error, "do sign error")
 
-  def md5(term) when is_bitstring(term) do
-    :md5 |> :crypto.hash(term) |> Base.encode16(case: :lower)
-  end
+  def hash(term, alg, access_key \\ nil)
+  def hash(term, alg, nil = _access_key), do: hex_string(:crypto.hash(alg, term))
+  def hash(term, alg, access_key), do: hex_string(:crypto.mac(:hmac, alg, access_key, term))
+
+  defp hex_string(binary), do: Base.encode16(binary, case: :lower)
 end
