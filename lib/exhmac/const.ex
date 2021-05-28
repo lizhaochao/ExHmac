@@ -9,4 +9,6 @@ defmodule ExHmac.Const do
 
   def default_timestamp_offset_seconds, do: 900
   def default_nonce_ttl, do: 900
+
+  def support_hash_algs, do: [:sha512, :sha256, :md5]
 end
