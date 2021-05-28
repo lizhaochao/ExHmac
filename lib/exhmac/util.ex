@@ -1,7 +1,7 @@
 defmodule ExHmac.Util do
   @moduledoc false
 
-  alias ExHmac.Const
+  alias ExHmac.{Const, Error}
 
   @default_access_key_name Const.default_access_key_name()
   @default_secret_key_name Const.default_secret_key_name()
@@ -10,6 +10,16 @@ defmodule ExHmac.Util do
   @default_nonce_name Const.default_nonce_name()
   @default_timestamp_offset_seconds Const.default_timestamp_offset_seconds()
   @default_nonce_ttl Const.default_nonce_ttl()
+
+  def contain_hmac?(hash_alg) when is_atom(hash_alg) do
+    hash_alg
+    |> to_string()
+    |> String.downcase()
+    |> String.slice(0, 4)
+    |> Kernel.==("hmac")
+  end
+
+  def contain_hmac?(_other), do: raise(Error, "hash_alg should be atom")
 
   def get_curr_ts(prec \\ :second)
   def get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)

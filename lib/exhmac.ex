@@ -62,8 +62,14 @@ defmodule ExHmac do
   end
 
   def sign(args, access_key, secret_key, opts) do
-    args
-    |> Signer.make_sign_string(access_key, secret_key, opts)
-    |> Signer.do_sign(:sha256)
+    with %{hash_alg: hash_alg} <- opts,
+         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts) do
+      hash_alg
+      |> Util.contain_hmac?()
+      |> if(
+        do: Signer.do_sign(sign_string, hash_alg, access_key),
+        else: Signer.do_sign(sign_string, hash_alg)
+      )
+    end
   end
 end
