@@ -1,40 +1,110 @@
 defmodule ExHmac.Use do
   @moduledoc false
 
-  alias ExHmac.Config
+  alias ExHmac.{Checker, Config, Signer, Noncer, Util}
+  alias ExHmac.Use, as: Self
 
-  @doc """
-    args type: map, keyword, multi args
-    check timestamp, can custom impl
-    check nonce, can custom impl
+  defmacro __using__(opts) do
+    opts = opts |> Config.get_config() |> Macro.escape()
 
-    2. make args (keyword type)
-    3. check timestamp (1.get 2.check)
-    4. check nonce (1.get 2.check)
-    5. make sign string (1.get access key 2.get secret key 3.make)
-    6. sign
-  """
-  defmacro __using__(_opts) do
-    :ok
+    quote do
+      def check_hmac(args, access_key, secret_key)
+          when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
+                 is_bitstring(secret_key) do
+        with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
+             opts <- unquote(opts),
+             :ok <- Self.check_timestamp(args, opts),
+             :ok <- Self.check_nonce(args, opts),
+             :ok <- Self.check_signature(args, access_key, secret_key, opts) do
+          :ok
+        else
+          err -> err
+        end
+      end
+
+      def sign(args, access_key, secret_key)
+          when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
+                 is_bitstring(secret_key) do
+        with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
+             opts <- unquote(opts),
+             signature <- Self.sign(args, access_key, secret_key, opts) do
+          signature
+        end
+      end
+
+      def gen_timestamp(precision \\ nil), do: Self.gen_timestamp(precision, unquote(opts))
+      def gen_nonce(len \\ nil), do: Self.gen_nonce(len, unquote(opts))
+    end
   end
 
   ###
-  def make_args(arg_names, arg_values) when is_list(arg_names) and is_list(arg_values) do
-    [a: 1, b: 2]
+  def check_timestamp(args, opts) do
+    with %{timestamp_name: timestamp_name} <- opts,
+         {:ok, timestamp} <- Keyword.fetch(args, timestamp_name),
+         :ok = result <- Checker.check_timestamp(timestamp, opts) do
+      result
+    else
+      :error -> :not_found_timestamp
+      err -> err
+    end
   end
 
-  #  def get_access_key(args, opts) when is_list(args) and is_list(opts) do
-  #    with key_name when not is_nil(key_name) <-
-  #           Keyword.get(opts, :key_name, @default_access_key_name),
-  #         access_key when is_bitstring(access_key) <- Keyword.get(args, key_name, nil) do
-  #      access_key
-  #    else
-  #      _ -> "get access key error"
-  #    end
-  #  end
+  def check_nonce(args, opts) do
+    with %{nonce_name: nonce_name} <- opts,
+         {:ok, nonce} <- Keyword.fetch(args, nonce_name),
+         :ok = result <- Checker.check_nonce(nonce, opts) do
+      result
+    else
+      :error -> :not_found_nonce
+      err -> err
+    end
+  end
 
-  def get_secret_key(callback, access_key)
-      when is_function(callback) and is_bitstring(access_key) do
-    callback.(access_key)
+  def check_signature(args, access_key, secret_key, opts) do
+    with %{signature_name: signature_name} <- opts,
+         {signature, args} when not is_nil(signature) <- Keyword.pop(args, signature_name),
+         my_signature <- sign(args, access_key, secret_key, opts),
+         true <- signature == my_signature do
+      :ok
+    else
+      _ -> :signature_error
+    end
+  end
+
+  ###
+  def sign(args, access_key, secret_key, opts) do
+    with %{hash_alg: hash_alg} <- opts,
+         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts),
+         signature <- do_sign(hash_alg, sign_string, access_key) do
+      signature
+    end
+  end
+
+  def do_sign(hash_alg, sign_string, access_key) do
+    with true <- Util.contain_hmac?(hash_alg),
+         hash_alg <- Util.prune_hash_alg(hash_alg),
+         signature <- Signer.do_sign(sign_string, hash_alg, access_key) do
+      signature
+    else
+      false -> Signer.do_sign(sign_string, hash_alg)
+    end
+  end
+
+  ###
+  def gen_timestamp(prec, opts) do
+    with %{precision: precision} <- opts,
+         precision <- prec || precision,
+         timestamp <- Util.get_curr_ts(precision) do
+      timestamp
+    end
+  end
+
+  ###
+  def gen_nonce(len, opts) do
+    with %{nonce_len: nonce_len} <- opts,
+         nonce_len <- len || nonce_len,
+         nonce <- Noncer.gen_nonce(nonce_len) do
+      nonce
+    end
   end
 end
