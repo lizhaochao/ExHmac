@@ -26,9 +26,8 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             opts <- unquote(opts),
-             signature <- Self.sign(args, access_key, secret_key, opts) do
-          signature
+             opts <- unquote(opts) do
+          Self.sign(args, access_key, secret_key, opts)
         end
       end
 
@@ -40,9 +39,8 @@ defmodule ExHmac.Use do
   ###
   def check_timestamp(args, opts) do
     with %{timestamp_name: timestamp_name} <- opts,
-         {:ok, timestamp} <- Keyword.fetch(args, timestamp_name),
-         :ok = result <- Checker.check_timestamp(timestamp, opts) do
-      result
+         {:ok, timestamp} <- Keyword.fetch(args, timestamp_name) do
+      Checker.check_timestamp(timestamp, opts)
     else
       :error -> :not_found_timestamp
       err -> err
@@ -51,9 +49,8 @@ defmodule ExHmac.Use do
 
   def check_nonce(args, opts) do
     with %{nonce_name: nonce_name} <- opts,
-         {:ok, nonce} <- Keyword.fetch(args, nonce_name),
-         :ok = result <- Checker.check_nonce(nonce, opts) do
-      result
+         {:ok, nonce} <- Keyword.fetch(args, nonce_name) do
+      Checker.check_nonce(nonce, opts)
     else
       :error -> :not_found_nonce
       err -> err
@@ -74,17 +71,15 @@ defmodule ExHmac.Use do
   ###
   def sign(args, access_key, secret_key, opts) do
     with %{hash_alg: hash_alg} <- opts,
-         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts),
-         signature <- do_sign(hash_alg, sign_string, access_key) do
-      signature
+         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts) do
+      do_sign(hash_alg, sign_string, access_key)
     end
   end
 
   def do_sign(hash_alg, sign_string, access_key) do
     with true <- Util.contain_hmac?(hash_alg),
-         hash_alg <- Util.prune_hash_alg(hash_alg),
-         signature <- Signer.do_sign(sign_string, hash_alg, access_key) do
-      signature
+         hash_alg <- Util.prune_hash_alg(hash_alg) do
+      Signer.do_sign(sign_string, hash_alg, access_key)
     else
       false -> Signer.do_sign(sign_string, hash_alg)
     end
@@ -93,18 +88,16 @@ defmodule ExHmac.Use do
   ###
   def gen_timestamp(prec, opts) do
     with %{precision: precision} <- opts,
-         precision <- prec || precision,
-         timestamp <- Util.get_curr_ts(precision) do
-      timestamp
+         precision <- prec || precision do
+      Util.get_curr_ts(precision)
     end
   end
 
   ###
   def gen_nonce(len, opts) do
     with %{nonce_len: nonce_len} <- opts,
-         nonce_len <- len || nonce_len,
-         nonce <- Noncer.gen_nonce(nonce_len) do
-      nonce
+         nonce_len <- len || nonce_len do
+      Noncer.gen_nonce(nonce_len)
     end
   end
 end
