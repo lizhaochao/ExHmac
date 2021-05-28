@@ -35,21 +35,21 @@ defmodule CheckerTest do
     end
   end
 
-  describe "warn_offset/4" do
+  describe "do_warn_offset/4" do
     test "should_warn" do
-      with radio <- 0.01,
+      with ratio <- 0.01,
            curr_ts <- 100 do
-        assert :should_warn == Checker.warn_offset(curr_ts, 100_500, radio, true)
-        assert :should_warn == Checker.warn_offset(curr_ts, 100_000, radio, true)
-        assert :should_warn == Checker.warn_offset(curr_ts, 99_500, radio, true)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_500, ratio, true)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_000, ratio, true)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 99_500, ratio, true)
       end
     end
 
     test "ignore" do
-      with any_radio <- 0.01,
+      with any_ratio <- 0.01,
            any_curr_ts <- 100,
            any_ts <- 101 do
-        assert :ignore == Checker.warn_offset(any_curr_ts, any_ts, any_radio, false)
+        assert :ignore == Checker.do_warn_offset(any_curr_ts, any_ts, any_ratio, false)
       end
     end
   end

@@ -2,7 +2,6 @@ defmodule ExHmac do
   @moduledoc false
 
   alias ExHmac.{Checker, Config, Signer, Noncer, Util}
-
   alias ExHmac, as: Self
 
   defmacro __using__(opts) do
@@ -33,11 +32,12 @@ defmodule ExHmac do
         end
       end
 
-      def gen_timestamp(precision \\ :second), do: Util.get_curr_ts(precision)
-      def gen_nonce(len \\ 6), do: Noncer.gen_nonce(len)
+      def gen_timestamp(precision \\ nil), do: Self.gen_timestamp(precision, unquote(opts))
+      def gen_nonce(len \\ nil), do: Self.gen_nonce(len, unquote(opts))
     end
   end
 
+  ###
   def check_timestamp(args, opts) do
     with %{timestamp_name: timestamp_name} <- opts,
          {:ok, timestamp} <- Keyword.fetch(args, timestamp_name),
@@ -71,15 +71,40 @@ defmodule ExHmac do
     end
   end
 
+  ###
   def sign(args, access_key, secret_key, opts) do
     with %{hash_alg: hash_alg} <- opts,
-         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts) do
-      hash_alg
-      |> Util.contain_hmac?()
-      |> if(
-        do: Signer.do_sign(sign_string, hash_alg, access_key),
-        else: Signer.do_sign(sign_string, hash_alg)
-      )
+         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts),
+         signature <- do_sign(hash_alg, sign_string, access_key) do
+      signature
+    end
+  end
+
+  def do_sign(hash_alg, sign_string, access_key) do
+    with true <- Util.contain_hmac?(hash_alg),
+         hash_alg <- Util.prune_hash_alg(hash_alg),
+         signature <- Signer.do_sign(sign_string, hash_alg, access_key) do
+      signature
+    else
+      false -> Signer.do_sign(sign_string, hash_alg)
+    end
+  end
+
+  ###
+  def gen_timestamp(prec, opts) do
+    with %{precision: precision} <- opts,
+         precision <- prec || precision,
+         timestamp <- Util.get_curr_ts(precision) do
+      timestamp
+    end
+  end
+
+  ###
+  def gen_nonce(len, opts) do
+    with %{nonce_len: nonce_len} <- opts,
+         nonce_len <- len || nonce_len,
+         nonce <- Noncer.gen_nonce(nonce_len) do
+      nonce
     end
   end
 end

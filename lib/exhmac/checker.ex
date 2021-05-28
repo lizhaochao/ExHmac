@@ -4,7 +4,7 @@ defmodule ExHmac.Checker do
   alias ExHmac.{Error, Noncer, Util}
 
   @warn_text "your timestamp may be a millisecond precision."
-  @warn_radio 0.01
+  @warn_ratio 0.01
 
   ### Timestamp
   def check_timestamp(ts, opts) when is_integer(ts) and ts > 0 and is_map(opts) do
@@ -15,11 +15,9 @@ defmodule ExHmac.Checker do
     } = opts
 
     with curr_ts <- Util.get_curr_ts(precision),
-         :ignore <- warn_offset(curr_ts, ts, @warn_radio, warn),
+         _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
          offset <- get_offset(precision, timestamp_offset) do
       do_check_timestamp(curr_ts, ts, offset)
-    else
-      :should_warn -> Error.warn(@warn_text, warn)
     end
   end
 
@@ -31,8 +29,16 @@ defmodule ExHmac.Checker do
   def get_offset(:millisecond, default), do: default * 1000
   def get_offset(_prec, default), do: default
 
-  def warn_offset(curr_ts, ts, radio, true) when abs(curr_ts / ts) < radio, do: :should_warn
-  def warn_offset(_, _, _, _warn), do: :ignore
+  def warn_offset(curr_ts, ts, warn, warn_text, warn_ratio) do
+    do_warn_offset(curr_ts, ts, warn_ratio, warn)
+    |> case do
+      :should_warn -> Error.warn(warn_text, warn)
+      _ -> nil
+    end
+  end
+
+  def do_warn_offset(curr_ts, ts, ratio, true) when abs(curr_ts / ts) < ratio, do: :should_warn
+  def do_warn_offset(_, _, _, _warn), do: :ignore
 
   ### Nonce
   def check_nonce(nonce, opts) when is_bitstring(nonce) and is_map(opts) do
