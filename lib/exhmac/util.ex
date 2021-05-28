@@ -1,15 +1,7 @@
 defmodule ExHmac.Util do
   @moduledoc false
 
-  alias ExHmac.{Const, Error}
-
-  @default_access_key_name Const.default_access_key_name()
-  @default_secret_key_name Const.default_secret_key_name()
-  @default_signature_name Const.default_signature_name()
-  @default_timestamp_name Const.default_timestamp_name()
-  @default_nonce_name Const.default_nonce_name()
-  @default_timestamp_offset_seconds Const.default_timestamp_offset_seconds()
-  @default_nonce_ttl Const.default_nonce_ttl()
+  alias ExHmac.Error
 
   def contain_hmac?(hash_alg) when is_atom(hash_alg) do
     hash_alg
@@ -24,22 +16,6 @@ defmodule ExHmac.Util do
   def get_curr_ts(prec \\ :second)
   def get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)
   def get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
-
-  def get_user_opts(opts) when is_list(opts) do
-    %{
-      timestamp_offset_seconds:
-        Keyword.get(opts, :timestamp_offset_seconds, @default_timestamp_offset_seconds),
-      nonce_ttl: Keyword.get(opts, :nonce_ttl, @default_nonce_ttl),
-      access_key_name: Keyword.get(opts, :access_key_name, @default_access_key_name),
-      secret_key_name: Keyword.get(opts, :secret_key_name, @default_secret_key_name),
-      signature_name: Keyword.get(opts, :secret_key_name, @default_signature_name),
-      timestamp_name: Keyword.get(opts, :timestamp_name, @default_timestamp_name),
-      nonce_name: Keyword.get(opts, :nonce_name, @default_nonce_name),
-      hash_alg: Keyword.get(opts, :hash_alg, :sha256),
-      precision: Keyword.get(opts, :precision, :second),
-      warn: Keyword.get(opts, :warn, true)
-    }
-  end
 
   ###
   def to_atom_key(%_{} = map), do: map |> struct_to_map() |> to_atom_key()

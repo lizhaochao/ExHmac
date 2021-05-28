@@ -11,12 +11,12 @@ defmodule ExHmac.Checker do
     %{
       precision: precision,
       warn: warn,
-      timestamp_offset_seconds: timestamp_offset_seconds
+      timestamp_offset: timestamp_offset
     } = opts
 
     with curr_ts <- Util.get_curr_ts(precision),
          :ignore <- warn_offset(curr_ts, ts, @warn_radio, warn),
-         offset <- get_offset(precision, timestamp_offset_seconds) do
+         offset <- get_offset(precision, timestamp_offset) do
       do_check_timestamp(curr_ts, ts, offset)
     else
       :should_warn -> Error.warn(@warn_text, warn)

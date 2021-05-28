@@ -1,12 +1,12 @@
 defmodule ExHmac do
   @moduledoc false
 
-  alias ExHmac.{Checker, Signer, Noncer, Util}
+  alias ExHmac.{Checker, Config, Signer, Noncer, Util}
 
   alias ExHmac, as: Self
 
   defmacro __using__(opts) do
-    opts = opts |> Util.get_user_opts() |> Macro.escape()
+    opts = opts |> Config.get_config() |> Macro.escape()
 
     quote do
       def check_hmac(args, access_key, secret_key) do

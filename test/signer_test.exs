@@ -1,9 +1,9 @@
 defmodule SignerTest do
   use ExUnit.Case
 
-  alias ExHmac.{Error, Signer, Util}
+  alias ExHmac.{Config, Error, Signer}
 
-  @opts Util.get_user_opts([])
+  @opts Config.get_config([])
 
   test "sign" do
     with args <- [a: "a", b: [1, 2, 3]],

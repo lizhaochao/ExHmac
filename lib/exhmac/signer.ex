@@ -1,9 +1,9 @@
 defmodule ExHmac.Signer do
   @moduledoc false
 
-  alias ExHmac.{Const, Error}
+  alias ExHmac.{Config, Error}
 
-  @support_hash_algs Const.support_hash_algs()
+  @support_hash_algs Config.support_hash_algs()
 
   ###
   def make_sign_string(args, access_key, secret_key, opts)

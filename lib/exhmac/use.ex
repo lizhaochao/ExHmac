@@ -1,9 +1,7 @@
 defmodule ExHmac.Use do
   @moduledoc false
 
-  alias ExHmac.Const
-
-  @default_access_key_name Const.default_access_key_name()
+  alias ExHmac.Config
 
   @doc """
     args type: map, keyword, multi args
@@ -25,15 +23,15 @@ defmodule ExHmac.Use do
     [a: 1, b: 2]
   end
 
-  def get_access_key(args, opts) when is_list(args) and is_list(opts) do
-    with key_name when not is_nil(key_name) <-
-           Keyword.get(opts, :key_name, @default_access_key_name),
-         access_key when is_bitstring(access_key) <- Keyword.get(args, key_name, nil) do
-      access_key
-    else
-      _ -> "get access key error"
-    end
-  end
+  #  def get_access_key(args, opts) when is_list(args) and is_list(opts) do
+  #    with key_name when not is_nil(key_name) <-
+  #           Keyword.get(opts, :key_name, @default_access_key_name),
+  #         access_key when is_bitstring(access_key) <- Keyword.get(args, key_name, nil) do
+  #      access_key
+  #    else
+  #      _ -> "get access key error"
+  #    end
+  #  end
 
   def get_secret_key(callback, access_key)
       when is_function(callback) and is_bitstring(access_key) do
