@@ -1,5 +1,5 @@
 defmodule AuthCenter.Hmac do
-  use ExHmac.Decorator,
+  use ExHmac,
     hash_alg: :sha512,
     warn: false,
     nonce_len: 20,
