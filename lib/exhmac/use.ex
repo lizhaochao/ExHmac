@@ -147,10 +147,10 @@ defmodule ExHmac.Use.Decorator do
 
   ###
   def fmt_resp(resp, impl_m, opts) do
-    %{fmt_resp_function_name: fmt_resp_function_name} = opts
+    %{format_resp_function_name: format_resp_function_name} = opts
 
-    if function_exported?(impl_m, fmt_resp_function_name, 1) do
-      resp = apply(impl_m, fmt_resp_function_name, [resp])
+    if function_exported?(impl_m, format_resp_function_name, 1) do
+      resp = apply(impl_m, format_resp_function_name, [resp])
       {:fmt, resp}
     else
       {:default, resp}

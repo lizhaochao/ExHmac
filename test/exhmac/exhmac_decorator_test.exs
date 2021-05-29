@@ -4,7 +4,7 @@ defmodule AuthCenter.Hmac do
     warn: false,
     nonce_len: 20,
     get_secret_key_function_name: :get_secret_by_key,
-    fmt_resp_function_name: :format_resp
+    format_resp_function_name: :format_resp
 
   def get_secret_by_key(access_key) do
     {access_key}

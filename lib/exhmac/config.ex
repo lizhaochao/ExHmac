@@ -31,7 +31,7 @@ defmodule ExHmac.Config do
       resp_succ_data_name: get(opts, :resp_succ_data_name, :data),
       resp_fail_data_name: get(opts, :resp_fail_data_name, :error),
       get_secret_key_function_name: get(opts, :get_secret_key_function_name, :get_secret_key),
-      fmt_resp_function_name: get(opts, :fmt_resp_function_name, :fmt_resp),
+      format_resp_function_name: get(opts, :format_resp_function_name, :fmt_resp),
       # other
       hash_alg: get(opts, :hash_alg, :sha256),
       warn: get(opts, :warn, true)
