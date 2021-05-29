@@ -73,7 +73,7 @@ defmodule ExHmac.Use.Decorator do
 
   def pre_check(impl_m, opts) do
     %{get_secret_key_function_name: get_secret_key_function_name} = opts
-    Checker.require_function(impl_m, get_secret_key_function_name, 1)
+    Checker.require_function!(impl_m, get_secret_key_function_name, 1)
   end
 
   ###
@@ -81,10 +81,11 @@ defmodule ExHmac.Use.Decorator do
       when is_list(args) and is_function(exec_body) do
     with access_key when is_bitstring(access_key) <- get_access_key(args, opts),
          secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m, opts),
-         resp <- do_check_hmac(args, access_key, secret_key, opts, exec_body) do
+         resp <- do_check_hmac(args, access_key, secret_key, opts, exec_body),
+         resp <- fmt_resp(resp, impl_m, opts) do
       Helper.make_resp(resp, opts, access_key, secret_key)
     else
-      err_without_hmac -> Helper.make_resp(err_without_hmac, opts)
+      err_without_hmac -> err_without_hmac |> fmt_resp(impl_m, opts) |> Helper.make_resp(opts)
     end
   end
 
@@ -141,6 +142,18 @@ defmodule ExHmac.Use.Decorator do
       secret_key when is_nil(secret_key) or secret_key == "" -> :access_key_error
       err when is_atom(err) -> err
       _ -> :get_secret_key_error
+    end
+  end
+
+  ###
+  def fmt_resp(resp, impl_m, opts) do
+    %{fmt_resp_function_name: fmt_resp_function_name} = opts
+
+    if function_exported?(impl_m, fmt_resp_function_name, 1) do
+      resp = apply(impl_m, fmt_resp_function_name, [resp])
+      {:fmt, resp}
+    else
+      {:default, resp}
     end
   end
 end
@@ -213,13 +226,32 @@ defmodule ExHmac.Use.Helper do
   end
 
   ###
-  # TODO: support custom impl
-  def make_resp(resp, opts) do
-    %{resp_fail_data_name: resp_fail_data_name} = opts
-    Keyword.put([], resp_fail_data_name, resp)
+  def make_resp({:default, resp}, opts) do
+    resp_data_name = get_resp_data_name(resp, opts)
+    Keyword.put([], resp_data_name, resp)
   end
 
-  def make_resp(resp, opts, access_key, secret_key) do
+  def make_resp({:fmt, resp}, _opts) do
+    resp
+    |> Checker.keyword_or_map!("resp")
+    |> Util.to_keyword()
+  end
+
+  def make_resp({:default, _} = default_resp, opts, access_key, secret_key) do
+    default_resp
+    |> make_resp(opts)
+    |> append_hmac(opts, access_key, secret_key)
+  end
+
+  def make_resp({:fmt, resp}, opts, access_key, secret_key) do
+    resp
+    |> Checker.keyword_or_map!("resp")
+    |> Util.to_keyword()
+    |> append_hmac(opts, access_key, secret_key)
+  end
+
+  #
+  def append_hmac(resp, opts, access_key, secret_key) do
     with args <- make_resp_args(resp, opts),
          signature <- sign(args, access_key, secret_key, opts),
          args <- put_signature(args, signature, opts) do
@@ -231,12 +263,17 @@ defmodule ExHmac.Use.Helper do
     with %{
            timestamp_name: timestamp_name,
            nonce_name: nonce_name
-         } <- opts,
-         resp_data_name <- get_resp_data_name(resp, opts) do
+         } <- opts do
       []
-      |> Keyword.put(resp_data_name, resp)
       |> Keyword.put(timestamp_name, gen_timestamp(nil, opts))
       |> Keyword.put(nonce_name, gen_nonce(nil, opts))
+      |> Keyword.merge(resp)
+    end
+  end
+
+  def put_signature(args, signature, opts) do
+    with %{signature_name: signature_name} <- opts do
+      Keyword.put(args, signature_name, signature)
     end
   end
 
@@ -249,12 +286,6 @@ defmodule ExHmac.Use.Helper do
     case resp do
       resp when is_atom(resp) -> resp_fail_data_name
       _resp -> resp_succ_data_name
-    end
-  end
-
-  def put_signature(args, signature, opts) do
-    with %{signature_name: signature_name} <- opts do
-      Keyword.put(args, signature_name, signature)
     end
   end
 end

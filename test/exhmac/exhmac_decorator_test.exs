@@ -3,11 +3,20 @@ defmodule AuthCenter.Hmac do
     hash_alg: :sha512,
     warn: false,
     nonce_len: 20,
-    get_secret_key_function_name: :get_secret_by_key
+    get_secret_key_function_name: :get_secret_by_key,
+    fmt_resp_function_name: :format_resp
 
   def get_secret_by_key(access_key) do
     {access_key}
     "test_secret_key"
+  end
+
+  def format_resp(resp) do
+    case resp do
+      [username, passwd] -> %{username: username, passwd: passwd}
+      err when is_atom(err) -> %{result: 10_001, error_msg: to_string(err)}
+      resp -> resp
+    end
   end
 end
 
@@ -38,8 +47,8 @@ defmodule ExHmacDecoratorTest do
          nonce <- gen_nonce(),
          signature <- make_signature(timestamp, nonce) do
       resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{data: [username, passwd]} = resp = Map.new(resp)
-      assert 4 == map_size(resp)
+      %{username: username, passwd: passwd} = resp = Map.new(resp)
+      assert 5 == map_size(resp)
       assert @username == username
       assert @passwd == passwd
     end
@@ -51,9 +60,9 @@ defmodule ExHmacDecoratorTest do
          nonce <- gen_nonce(),
          signature <- make_signature(timestamp, nonce) do
       resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{error: error} = resp = Map.new(resp)
-      assert 4 == map_size(resp)
-      assert :signature_error == error
+      %{error_msg: error_msg} = resp = Map.new(resp)
+      assert 5 == map_size(resp)
+      assert to_string(:signature_error) == error_msg
     end
   end
 
@@ -63,9 +72,9 @@ defmodule ExHmacDecoratorTest do
          nonce <- gen_nonce(),
          signature <- make_signature(timestamp, nonce) do
       resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{error: error} = resp = Map.new(resp)
-      assert 1 == map_size(resp)
-      assert :access_key_error == error
+      %{error_msg: error_msg} = resp = Map.new(resp)
+      assert 2 == map_size(resp)
+      assert to_string(:access_key_error) == error_msg
     end
   end
 

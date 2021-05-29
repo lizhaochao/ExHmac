@@ -67,11 +67,19 @@ defmodule ExHmac.Checker do
   end
 
   ###
-  def require_function(impl_m, f, arity) do
+  def require_function!(impl_m, f, arity) do
     if function_exported?(impl_m, f, arity) do
       :ignore
     else
       raise Error, "!!! not implement #{to_string(f)}/#{arity} function !!!"
+    end
+  end
+
+  def keyword_or_map!(term, title) do
+    if Keyword.keyword?(term) or is_map(term) do
+      term
+    else
+      raise Error, "#{title}: must be keyword or map"
     end
   end
 end

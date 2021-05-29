@@ -33,7 +33,7 @@ defmodule ExHmac.Util do
   def get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
 
   def to_keyword(term) when is_list(term), do: term
-  def to_keyword(term) when is_map(term), do: Keyword.new(term)
+  def to_keyword(term) when is_map(term), do: Enum.into(term, [])
 
   ###
   def to_atom_key(%_{} = map), do: map |> struct_to_map() |> to_atom_key()
