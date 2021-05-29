@@ -40,38 +40,47 @@ end
 defmodule ExHmac.Use.Decorator do
   @moduledoc false
 
-  alias ExHmac.Config
+  alias ExHmac.{Config, Checker}
   alias ExHmac.Use.Helper
   alias ExHmac.Use.Decorator, as: Self
 
   defmacro __using__(opts) do
     quote do
       def check_hmac(body, %Decorator.Decorate.Context{} = ctx) do
-        with opts <- unquote(opts) |> Config.get_config() |> Macro.escape(),
-             %{args: args_expr} <- ctx,
-             arg_names <- Self.make_arg_names(args_expr),
-             impl_m <- __MODULE__ do
-          Self.check_hmac(arg_names, args_expr, body, opts, impl_m)
+        opts = Config.get_config(unquote(opts))
+        impl_m = __MODULE__
+        Self.pre_check(impl_m, opts)
+
+        with opts_expr <- Macro.escape(opts),
+             %{args: args_expr} <- ctx do
+          args_expr
+          |> Self.make_arg_names()
+          |> Self.check_hmac(args_expr, body, opts_expr, impl_m)
         end
       end
     end
   end
 
-  def check_hmac(arg_names, args_expr, body, opts, impl_m) do
+  def check_hmac(arg_names, args_expr, body, opts_expr, impl_m) do
     quote do
       with exec_body <- fn -> unquote(body) end,
            arg_values <- unquote(args_expr),
            args <- Self.make_args(unquote(arg_names), arg_values) do
-        Self.do_check_hmac(args, exec_body, unquote(opts), unquote(impl_m))
+        Self.do_check_hmac(args, exec_body, unquote(opts_expr), unquote(impl_m))
       end
     end
+  end
+
+  def pre_check(impl_m, opts) do
+    %{get_secret_key_function_name: get_secret_key_function_name} = opts
+    Checker.require_function(impl_m, get_secret_key_function_name, 1)
   end
 
   ###
   def do_check_hmac(args, exec_body, opts, impl_m)
       when is_list(args) and is_function(exec_body) do
     with access_key when is_bitstring(access_key) <- get_access_key(args, opts),
-         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m),
+         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m, opts),
          resp <- do_check_hmac(args, access_key, secret_key, opts, exec_body) do
       Helper.make_resp(resp, opts, access_key, secret_key)
     else
@@ -122,10 +131,11 @@ defmodule ExHmac.Use.Decorator do
     end
   end
 
-  # TODO: exported? then raise error
-  def get_secret_key(access_key, impl_m) do
+  def get_secret_key(access_key, impl_m, opts) do
+    %{get_secret_key_function_name: get_secret_key_function_name} = opts
+
     impl_m
-    |> apply(:get_secret_key, [access_key])
+    |> apply(get_secret_key_function_name, [access_key])
     |> case do
       secret_key when is_bitstring(secret_key) -> secret_key
       secret_key when is_nil(secret_key) or secret_key == "" -> :access_key_error

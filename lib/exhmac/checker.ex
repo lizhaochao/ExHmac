@@ -65,4 +65,13 @@ defmodule ExHmac.Checker do
       _ -> :invalid_storage
     end
   end
+
+  ###
+  def require_function(impl_m, f, arity) do
+    if function_exported?(impl_m, f, arity) do
+      :ignore
+    else
+      raise Error, "!!! not implement #{to_string(f)}/#{arity} function !!!"
+    end
+  end
 end

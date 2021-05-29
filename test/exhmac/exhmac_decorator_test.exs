@@ -2,9 +2,10 @@ defmodule AuthCenter.Hmac do
   use ExHmac.Decorator,
     hash_alg: :sha512,
     warn: false,
-    nonce_len: 20
+    nonce_len: 20,
+    get_secret_key_function_name: :get_secret_by_key
 
-  def get_secret_key(access_key) do
+  def get_secret_by_key(access_key) do
     {access_key}
     "test_secret_key"
   end
