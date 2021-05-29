@@ -9,6 +9,7 @@ defmodule Server.Hmac do
     hash_alg: :hmac_sha256,
     nonce_len: 20
 
+  def get_access_key_name, do: :key
   def get_signature_name, do: :sig
   def get_timestamp_name, do: :ts
   def get_nonce_name, do: :once
@@ -21,7 +22,7 @@ defmodule Server do
 
   def sign_in(json_string) do
     with params <- Test.deserialize(json_string),
-         access_key <- Test.get_key(),
+         access_key <- Test.get_key(params),
          secret_key <- Test.get_secret(access_key),
          :ok <- check_hmac(params, access_key, secret_key),
          ok_code <- 0 do
@@ -62,6 +63,7 @@ end
 defmodule ExHmac.Opts.Test do
   import Server.Hmac
 
+  @access_key_name get_access_key_name()
   @signature_name get_signature_name()
   @timestamp_name get_timestamp_name()
   @nonce_name get_nonce_name()
@@ -70,6 +72,7 @@ defmodule ExHmac.Opts.Test do
   @error_code -1
 
   def get_key, do: @access_key
+  def get_key(%{"key" => access_key}), do: access_key
   def get_secret(_key), do: @secret_key
 
   def serialize({:ok, json_string}), do: json_string
@@ -101,6 +104,7 @@ defmodule ExHmac.Opts.Test do
            b: b_value
          ] do
       params
+      |> Keyword.put(@access_key_name, @access_key)
       |> Keyword.put(@timestamp_name, timestamp || gen_timestamp())
       |> Keyword.put(@nonce_name, nonce || gen_nonce())
     end

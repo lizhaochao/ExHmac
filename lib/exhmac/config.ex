@@ -28,6 +28,8 @@ defmodule ExHmac.Config do
       signature_name: get(opts, :signature_name, :signature),
       timestamp_name: get(opts, :timestamp_name, :timestamp),
       nonce_name: get(opts, :nonce_name, :nonce),
+      resp_succ_data_name: get(opts, :resp_succ_data_name, :data),
+      resp_fail_data_name: get(opts, :resp_fail_data_name, :error),
       # other
       hash_alg: get(opts, :hash_alg, :sha256),
       warn: get(opts, :warn, true)

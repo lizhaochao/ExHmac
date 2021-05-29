@@ -9,7 +9,7 @@ defmodule Project do
 
   def sign_in(json_string) do
     with params <- Test.deserialize(json_string),
-         access_key <- Test.get_key(),
+         access_key <- Test.get_key(params),
          secret_key <- Test.get_secret(access_key),
          :ok <- check_hmac(params, access_key, secret_key),
          ok_code <- 0 do
@@ -122,6 +122,7 @@ defmodule ExHmac.Test do
   @error_code -1
 
   def get_key, do: @access_key
+  def get_key(%{"access_key" => access_key}), do: access_key
   def get_secret(_key), do: @secret_key
 
   def serialize({:ok, json_string}), do: json_string
@@ -146,6 +147,7 @@ defmodule ExHmac.Test do
     # nested data
     with {:ok, b_value} <- Poison.encode(%{c: "c", d: "d"}),
          params <- [
+           access_key: @access_key,
            a: 1,
            b: b_value,
            timestamp: timestamp || gen_timestamp(),

@@ -36,6 +36,7 @@ defmodule ExHmac.MixProject do
   defp deps do
     [
       {:poison, "> 0.0.0"},
+      {:decorator, "> 0.0.0"},
       # Dev and test dependencies
       {:excoveralls, "> 0.0.0", only: :test},
       {:propcheck, "> 0.0.0", only: :test},
