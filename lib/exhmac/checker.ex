@@ -7,12 +7,12 @@ defmodule ExHmac.Checker do
   @warn_ratio 0.01
 
   ### Timestamp
-  def check_timestamp(ts, opts) when is_integer(ts) and ts > 0 and is_map(opts) do
+  def check_timestamp(ts, config) when is_integer(ts) and ts > 0 and is_map(config) do
     %{
       precision: precision,
       warn: warn,
       timestamp_offset: timestamp_offset
-    } = opts
+    } = config
 
     with curr_ts <- Util.get_curr_ts(precision),
          _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
@@ -41,13 +41,11 @@ defmodule ExHmac.Checker do
   def do_warn_offset(_, _, _), do: :ignore
 
   ### Nonce
-  def check_nonce(nonce, opts) when is_bitstring(nonce) and is_map(opts) do
+  def check_nonce(nonce, config) when is_bitstring(nonce) and is_map(config) do
     with curr_ts <- Util.get_curr_ts(),
-         %{nonce_ttl: nonce_ttl} <- opts,
+         %{nonce_ttl: nonce_ttl} <- config,
          {:ok, created_at} <- get_created_at(nonce) do
       do_check_nonce(curr_ts, created_at, nonce_ttl)
-    else
-      _ -> raise(Error, "opts error")
     end
   end
 

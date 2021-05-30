@@ -5,17 +5,17 @@ defmodule ExHmac.Use do
   alias ExHmac.Use.Helper
 
   defmacro __using__(opts) do
-    opts = opts |> Config.get_config() |> Macro.escape()
+    config = opts |> Config.get_config() |> Macro.escape()
 
     quote do
       def check_hmac(args, access_key, secret_key)
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             opts <- unquote(opts),
-             :ok <- Helper.check_timestamp(args, opts),
-             :ok <- Helper.check_nonce(args, opts),
-             :ok <- Helper.check_signature(args, access_key, secret_key, opts) do
+             config <- unquote(config),
+             :ok <- Helper.check_timestamp(args, config),
+             :ok <- Helper.check_nonce(args, config),
+             :ok <- Helper.check_signature(args, access_key, secret_key, config) do
           :ok
         else
           err -> err
@@ -26,13 +26,13 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             opts <- unquote(opts) do
-          Helper.sign(args, access_key, secret_key, opts)
+             config <- unquote(config) do
+          Helper.sign(args, access_key, secret_key, config)
         end
       end
 
-      def gen_timestamp(precision \\ nil), do: Helper.gen_timestamp(precision, unquote(opts))
-      def gen_nonce(len \\ nil), do: Helper.gen_nonce(len, unquote(opts))
+      def gen_timestamp(precision \\ nil), do: Helper.gen_timestamp(precision, unquote(config))
+      def gen_nonce(len \\ nil), do: Helper.gen_nonce(len, unquote(config))
     end
   end
 end
@@ -47,52 +47,52 @@ defmodule ExHmac.Use.Decorator do
   defmacro __using__(opts) do
     quote do
       def check_hmac(body, %Decorator.Decorate.Context{} = ctx) do
-        opts = Config.get_config(unquote(opts))
+        config = Config.get_config(unquote(opts))
         impl_m = __MODULE__
-        Self.pre_check(impl_m, opts)
+        Self.pre_check(impl_m, config)
 
-        with opts_expr <- Macro.escape(opts),
+        with config_expr <- Macro.escape(config),
              %{args: args_expr} <- ctx do
           args_expr
           |> Self.make_arg_names()
-          |> Self.check_hmac(args_expr, body, opts_expr, impl_m)
+          |> Self.check_hmac(args_expr, body, config_expr, impl_m)
         end
       end
     end
   end
 
-  def check_hmac(arg_names, args_expr, body, opts_expr, impl_m) do
+  def check_hmac(arg_names, args_expr, body, config_expr, impl_m) do
     quote do
       with exec_body <- fn -> unquote(body) end,
            arg_values <- unquote(args_expr),
            args <- Self.make_args(unquote(arg_names), arg_values) do
-        Self.do_check_hmac(args, exec_body, unquote(opts_expr), unquote(impl_m))
+        Self.do_check_hmac(args, exec_body, unquote(config_expr), unquote(impl_m))
       end
     end
   end
 
-  def pre_check(impl_m, opts) do
-    %{get_secret_key_function_name: get_secret_key_function_name} = opts
+  def pre_check(impl_m, config) do
+    %{get_secret_key_function_name: get_secret_key_function_name} = config
     Checker.require_function!(impl_m, get_secret_key_function_name, 1)
   end
 
   ###
-  def do_check_hmac(args, exec_body, opts, impl_m)
+  def do_check_hmac(args, exec_body, config, impl_m)
       when is_list(args) and is_function(exec_body) do
-    with access_key when is_bitstring(access_key) <- get_access_key(args, opts),
-         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m, opts),
-         resp <- do_check_hmac(args, access_key, secret_key, opts, exec_body),
-         resp <- fmt_resp(resp, impl_m, opts) do
-      Helper.make_resp(resp, opts, access_key, secret_key)
+    with access_key when is_bitstring(access_key) <- get_access_key(args, config),
+         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m, config),
+         resp <- do_check_hmac(args, access_key, secret_key, config, exec_body),
+         resp <- fmt_resp(resp, impl_m, config) do
+      Helper.make_resp(resp, config, access_key, secret_key)
     else
-      err_without_hmac -> err_without_hmac |> fmt_resp(impl_m, opts) |> Helper.make_resp(opts)
+      err_without_hmac -> err_without_hmac |> fmt_resp(impl_m, config) |> Helper.make_resp(config)
     end
   end
 
-  def do_check_hmac(args, access_key, secret_key, opts, exec_body) do
-    with :ok <- Helper.check_timestamp(args, opts),
-         :ok <- Helper.check_nonce(args, opts),
-         :ok <- Helper.check_signature(args, access_key, secret_key, opts) do
+  def do_check_hmac(args, access_key, secret_key, config, exec_body) do
+    with :ok <- Helper.check_timestamp(args, config),
+         :ok <- Helper.check_nonce(args, config),
+         :ok <- Helper.check_signature(args, access_key, secret_key, config) do
       exec_body.()
     else
       err -> err
@@ -120,8 +120,8 @@ defmodule ExHmac.Use.Decorator do
   end
 
   ###
-  def get_access_key(args, opts) do
-    %{access_key_name: access_key_name} = opts
+  def get_access_key(args, config) do
+    %{access_key_name: access_key_name} = config
 
     args
     |> Keyword.fetch(access_key_name)
@@ -132,8 +132,8 @@ defmodule ExHmac.Use.Decorator do
     end
   end
 
-  def get_secret_key(access_key, impl_m, opts) do
-    %{get_secret_key_function_name: get_secret_key_function_name} = opts
+  def get_secret_key(access_key, impl_m, config) do
+    %{get_secret_key_function_name: get_secret_key_function_name} = config
 
     impl_m
     |> apply(get_secret_key_function_name, [access_key])
@@ -146,9 +146,9 @@ defmodule ExHmac.Use.Decorator do
   end
 
   ###
-  def fmt_resp(resp, impl_m, opts) do
+  def fmt_resp(resp, impl_m, config) do
     with _ <- Util.log_debug(origin_resp: resp),
-         %{format_resp_function_name: format_resp_function_name} <- opts,
+         %{format_resp_function_name: format_resp_function_name} <- config,
          true <- function_exported?(impl_m, format_resp_function_name, 1),
          resp = apply(impl_m, format_resp_function_name, [resp]),
          _ <- Util.log_debug(resp: resp) do
@@ -164,30 +164,30 @@ defmodule ExHmac.Use.Helper do
 
   alias ExHmac.{Checker, Signer, Noncer, Util}
 
-  def check_timestamp(args, opts) do
-    with %{timestamp_name: timestamp_name} <- opts,
+  def check_timestamp(args, config) do
+    with %{timestamp_name: timestamp_name} <- config,
          {:ok, timestamp} <- Keyword.fetch(args, timestamp_name) do
-      Checker.check_timestamp(timestamp, opts)
+      Checker.check_timestamp(timestamp, config)
     else
       :error -> :not_found_timestamp
       err -> err
     end
   end
 
-  def check_nonce(args, opts) do
-    with %{nonce_name: nonce_name} <- opts,
+  def check_nonce(args, config) do
+    with %{nonce_name: nonce_name} <- config,
          {:ok, nonce} <- Keyword.fetch(args, nonce_name) do
-      Checker.check_nonce(nonce, opts)
+      Checker.check_nonce(nonce, config)
     else
       :error -> :not_found_nonce
       err -> err
     end
   end
 
-  def check_signature(args, access_key, secret_key, opts) do
-    with %{signature_name: signature_name} <- opts,
+  def check_signature(args, access_key, secret_key, config) do
+    with %{signature_name: signature_name} <- config,
          {signature, args} when not is_nil(signature) <- Keyword.pop(args, signature_name),
-         my_signature <- sign(args, access_key, secret_key, opts),
+         my_signature <- sign(args, access_key, secret_key, config),
          true <- signature == my_signature do
       :ok
     else
@@ -196,9 +196,9 @@ defmodule ExHmac.Use.Helper do
   end
 
   ###
-  def sign(args, access_key, secret_key, opts) do
-    with %{hash_alg: hash_alg} <- opts,
-         sign_string <- Signer.make_sign_string(args, access_key, secret_key, opts) do
+  def sign(args, access_key, secret_key, config) do
+    with %{hash_alg: hash_alg} <- config,
+         sign_string <- Signer.make_sign_string(args, access_key, secret_key, config) do
       do_sign(hash_alg, sign_string, access_key)
     end
   end
@@ -213,76 +213,76 @@ defmodule ExHmac.Use.Helper do
   end
 
   ###
-  def gen_timestamp(prec, opts) do
-    with precision <- prec || Map.get(opts, :precision) do
+  def gen_timestamp(prec, config) do
+    with precision <- prec || Map.get(config, :precision) do
       Util.get_curr_ts(precision)
     end
   end
 
   ###
-  def gen_nonce(len, opts) do
-    with nonce_len <- len || Map.get(opts, :nonce_len) do
+  def gen_nonce(len, config) do
+    with nonce_len <- len || Map.get(config, :nonce_len) do
       Noncer.gen_nonce(nonce_len)
     end
   end
 
   ###
-  def make_resp({:default, resp}, opts) do
-    resp_data_name = get_resp_data_name(resp, opts)
+  def make_resp({:default, resp}, config) do
+    resp_data_name = get_resp_data_name(resp, config)
     Keyword.put([], resp_data_name, resp)
   end
 
-  def make_resp({:fmt, resp}, _opts) do
+  def make_resp({:fmt, resp}, _config) do
     resp
     |> Checker.keyword_or_map!("resp")
     |> Util.to_keyword()
   end
 
-  def make_resp({:default, _} = default_resp, opts, access_key, secret_key) do
+  def make_resp({:default, _} = default_resp, config, access_key, secret_key) do
     default_resp
-    |> make_resp(opts)
-    |> append_hmac(opts, access_key, secret_key)
+    |> make_resp(config)
+    |> append_hmac(config, access_key, secret_key)
   end
 
-  def make_resp({:fmt, resp}, opts, access_key, secret_key) do
+  def make_resp({:fmt, resp}, config, access_key, secret_key) do
     resp
     |> Checker.keyword_or_map!("resp")
     |> Util.to_keyword()
-    |> append_hmac(opts, access_key, secret_key)
+    |> append_hmac(config, access_key, secret_key)
   end
 
   #
-  def append_hmac(resp, opts, access_key, secret_key) do
-    with args <- make_resp_args(resp, opts),
-         signature <- sign(args, access_key, secret_key, opts),
-         args <- put_signature(args, signature, opts) do
+  def append_hmac(resp, config, access_key, secret_key) do
+    with args <- make_resp_args(resp, config),
+         signature <- sign(args, access_key, secret_key, config),
+         args <- put_signature(args, signature, config) do
       args
     end
   end
 
-  def make_resp_args(resp, opts) do
+  def make_resp_args(resp, config) do
     with %{
            timestamp_name: timestamp_name,
            nonce_name: nonce_name
-         } <- opts do
+         } <- config do
       []
-      |> Keyword.put(timestamp_name, gen_timestamp(nil, opts))
-      |> Keyword.put(nonce_name, gen_nonce(nil, opts))
+      |> Keyword.put(timestamp_name, gen_timestamp(nil, config))
+      |> Keyword.put(nonce_name, gen_nonce(nil, config))
       |> Keyword.merge(resp)
     end
   end
 
-  def put_signature(args, signature, opts) do
-    with %{signature_name: signature_name} <- opts do
+  def put_signature(args, signature, config) do
+    with %{signature_name: signature_name} <- config do
       Keyword.put(args, signature_name, signature)
     end
   end
 
-  def get_resp_data_name(resp, opts) do
+  def get_resp_data_name(resp, config) do
     %{
       resp_succ_data_name: resp_succ_data_name,
       resp_fail_data_name: resp_fail_data_name
-    } = opts
+    } = config
 
     case resp do
       resp when is_atom(resp) -> resp_fail_data_name

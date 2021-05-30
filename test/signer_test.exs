@@ -3,17 +3,17 @@ defmodule SignerTest do
 
   alias ExHmac.{Config, Error, Signer}
 
-  @opts Config.get_config([])
+  @config Config.get_config([])
 
   test "sign" do
     with args <- [a: "a", b: [1, 2, 3]],
          access_key <- "access",
          secret_key <- "secret",
-         %{hash_alg: hash_alg} <- @opts,
+         %{hash_alg: hash_alg} <- @config,
          expected <- "efc2ca04075c06e5234c4eb2c321aee4ea1a0c58fe5730d44f989e0d12f10154" do
       assert expected ==
                args
-               |> Signer.make_sign_string(access_key, secret_key, @opts)
+               |> Signer.make_sign_string(access_key, secret_key, @config)
                |> Signer.do_sign(hash_alg)
     end
   end
@@ -24,22 +24,21 @@ defmodule SignerTest do
            access_key <- "access",
            secret_key <- "secret",
            expected <- "a=a&access_key=access&b=[1,2,3]&secret_key=secret" do
-        assert expected == Signer.make_sign_string(args, access_key, secret_key, @opts)
+        assert expected == Signer.make_sign_string(args, access_key, secret_key, @config)
       end
     end
 
     test "error" do
       [
         {%{}, 123, 456, []},
-        {%{}, "abc", "efg", @opts},
-        {[a: 1], 123, "efg", @opts},
-        {[a: 1], "abc", 456, @opts},
-        {[a: 1], "abc", "efg", []},
-        {[a: 1], "abc", "efg", %{}}
+        {%{}, "abc", "efg", @config},
+        {[a: 1], 123, "efg", @config},
+        {[a: 1], "abc", 456, @config},
+        {[a: 1], "abc", "efg", []}
       ]
-      |> Enum.each(fn {args, access_key, secret_key, opts} ->
+      |> Enum.each(fn {args, access_key, secret_key, config} ->
         assert_raise Error, fn ->
-          Signer.make_sign_string(args, access_key, secret_key, opts)
+          Signer.make_sign_string(args, access_key, secret_key, config)
         end
       end)
     end

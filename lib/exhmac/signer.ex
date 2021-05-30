@@ -6,20 +6,18 @@ defmodule ExHmac.Signer do
   @support_hash_algs Config.support_hash_algs()
 
   ###
-  def make_sign_string(args, access_key, secret_key, opts)
+  def make_sign_string(args, access_key, secret_key, config)
       when is_list(args) and is_bitstring(access_key) and is_bitstring(secret_key) and
-             is_map(opts) do
+             is_map(config) do
     with maker <- do_make_sign_string(args, access_key, secret_key),
          %{
            access_key_name: access_key_name,
            secret_key_name: secret_key_name,
            signature_name: signature_name
-         } <- opts,
+         } <- config,
          sign_string <- maker.(signature_name, access_key_name, secret_key_name),
          _ <- Util.log_debug(sign_string: sign_string) do
       sign_string
-    else
-      _ -> raise(Error, "opts error")
     end
   end
 

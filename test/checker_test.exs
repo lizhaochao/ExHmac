@@ -86,9 +86,9 @@ defmodule CheckerTest do
         {1_622_115_000, []},
         {"123", %{}}
       ]
-      |> Enum.each(fn {ts, opts} ->
+      |> Enum.each(fn {ts, config} ->
         assert_raise Error, fn ->
-          Checker.check_timestamp(ts, opts)
+          Checker.check_timestamp(ts, config)
         end
       end)
     end
@@ -99,17 +99,11 @@ defmodule CheckerTest do
         {123, %{}},
         {"a1h801", []}
       ]
-      |> Enum.each(fn {nonce, opts} ->
+      |> Enum.each(fn {nonce, config} ->
         assert_raise Error, fn ->
-          Checker.check_nonce(nonce, opts)
+          Checker.check_nonce(nonce, config)
         end
       end)
-    end
-
-    test "check_nonce/2 opts error" do
-      assert_raise Error, fn ->
-        Checker.check_nonce("a1k8h1", %{b: 2})
-      end
     end
   end
 end
