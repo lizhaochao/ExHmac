@@ -3,8 +3,7 @@ defmodule AuthCenter.Hmac do
     hash_alg: :sha512,
     warn: false,
     nonce_len: 20,
-    get_secret_key_function_name: :get_secret_by_key,
-    format_resp_function_name: :format_resp
+    get_secret_key_function_name: :get_secret_by_key
 
   alias ExHmac.TestHelper
 
@@ -13,7 +12,7 @@ defmodule AuthCenter.Hmac do
     TestHelper.get_test_secret_key()
   end
 
-  def format_resp(resp) do
+  def fmt_resp(resp) do
     case resp do
       [username, passwd] -> %{username: username, passwd: passwd}
       err when is_atom(err) -> %{result: 10_001, error_msg: to_string(err)}

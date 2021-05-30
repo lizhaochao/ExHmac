@@ -147,9 +147,10 @@ defmodule ExHmac.Use.Decorator do
   ###
   def fmt_resp(resp, config) do
     with _ <- Util.log_debug(origin_resp: resp),
-         %{impl_m: impl_m, format_resp_function_name: format_resp_function_name} <- config,
-         true <- function_exported?(impl_m, format_resp_function_name, 1),
-         resp = apply(impl_m, format_resp_function_name, [resp]),
+         %{impl_m: impl_m} <- config,
+         {f_name, f_arity} <- __ENV__.function,
+         true <- function_exported?(impl_m, f_name, f_arity - 1),
+         resp = apply(impl_m, f_name, [resp]),
          _ <- Util.log_debug(resp: resp) do
       {:fmt, resp}
     else
