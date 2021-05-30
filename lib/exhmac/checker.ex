@@ -30,15 +30,15 @@ defmodule ExHmac.Checker do
   def get_offset(_prec, default), do: default
 
   def warn_offset(curr_ts, ts, warn, warn_text, warn_ratio) do
-    do_warn_offset(curr_ts, ts, warn_ratio, warn)
+    do_warn_offset(curr_ts, ts, warn_ratio)
     |> case do
       :should_warn -> Error.warn(warn_text, warn)
       _ -> nil
     end
   end
 
-  def do_warn_offset(curr_ts, ts, ratio, true) when abs(curr_ts / ts) < ratio, do: :should_warn
-  def do_warn_offset(_, _, _, _warn), do: :ignore
+  def do_warn_offset(curr_ts, ts, ratio) when abs(curr_ts / ts) < ratio, do: :should_warn
+  def do_warn_offset(_, _, _), do: :ignore
 
   ### Nonce
   def check_nonce(nonce, opts) when is_bitstring(nonce) and is_map(opts) do

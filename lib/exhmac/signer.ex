@@ -1,7 +1,7 @@
 defmodule ExHmac.Signer do
   @moduledoc false
 
-  alias ExHmac.{Config, Error}
+  alias ExHmac.{Config, Error, Util}
 
   @support_hash_algs Config.support_hash_algs()
 
@@ -14,8 +14,10 @@ defmodule ExHmac.Signer do
            access_key_name: access_key_name,
            secret_key_name: secret_key_name,
            signature_name: signature_name
-         } <- opts do
-      maker.(signature_name, access_key_name, secret_key_name)
+         } <- opts,
+         sign_string <- maker.(signature_name, access_key_name, secret_key_name),
+         _ <- Util.log_debug(sign_string: sign_string) do
+      sign_string
     else
       _ -> raise(Error, "opts error")
     end
@@ -53,7 +55,10 @@ defmodule ExHmac.Signer do
   def do_sign(sign_string, alg, access_key)
       when is_bitstring(sign_string) and alg in @support_hash_algs and
              (is_nil(access_key) or is_bitstring(access_key)) do
-    hash(sign_string, alg, access_key)
+    with hash_result <- hash(sign_string, alg, access_key),
+         _ <- do_sign_log(hash_result, alg, access_key) do
+      hash_result
+    end
   end
 
   def do_sign(_sign_string, alg, _access_key) when alg not in @support_hash_algs do
@@ -61,6 +66,13 @@ defmodule ExHmac.Signer do
   end
 
   def do_sign(_, _, _), do: raise(Error, "do sign error")
+
+  def do_sign_log(hash_result, alg, access_key) do
+    with log <- [alg: alg, hash_result: hash_result],
+         extra <- (access_key && [access_key: access_key]) || [] do
+      Util.log_debug(log ++ extra)
+    end
+  end
 
   def hash(term, alg, access_key \\ nil)
   def hash(term, alg, nil = _access_key), do: hex_string(:crypto.hash(alg, term))

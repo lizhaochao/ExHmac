@@ -1,6 +1,8 @@
 defmodule ExHmac.Util do
   @moduledoc false
 
+  require Logger
+
   alias ExHmac.{Config, Error}
 
   @support_hash_algs Config.support_hash_algs()
@@ -34,6 +36,9 @@ defmodule ExHmac.Util do
 
   def to_keyword(term) when is_list(term), do: term
   def to_keyword(term) when is_map(term), do: Enum.into(term, [])
+
+  def log_debug([_ | _] = term), do: Logger.debug(term)
+  def log_warn(term) when is_bitstring(term), do: Logger.warn(term)
 
   ###
   def to_atom_key(%_{} = map), do: map |> struct_to_map() |> to_atom_key()

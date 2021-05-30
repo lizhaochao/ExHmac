@@ -40,7 +40,7 @@ end
 defmodule ExHmac.Use.Decorator do
   @moduledoc false
 
-  alias ExHmac.{Config, Checker}
+  alias ExHmac.{Config, Checker, Util}
   alias ExHmac.Use.Helper
   alias ExHmac.Use.Decorator, as: Self
 
@@ -147,13 +147,14 @@ defmodule ExHmac.Use.Decorator do
 
   ###
   def fmt_resp(resp, impl_m, opts) do
-    %{format_resp_function_name: format_resp_function_name} = opts
-
-    if function_exported?(impl_m, format_resp_function_name, 1) do
-      resp = apply(impl_m, format_resp_function_name, [resp])
+    with _ <- Util.log_debug(origin_resp: resp),
+         %{format_resp_function_name: format_resp_function_name} <- opts,
+         true <- function_exported?(impl_m, format_resp_function_name, 1),
+         resp = apply(impl_m, format_resp_function_name, [resp]),
+         _ <- Util.log_debug(resp: resp) do
       {:fmt, resp}
     else
-      {:default, resp}
+      false -> {:default, resp}
     end
   end
 end

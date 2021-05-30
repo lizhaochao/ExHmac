@@ -4,6 +4,7 @@
 /doc/
 /.fetch
 /tmp
+/log
 /config/*.secret.exs
 /.idea
 .elixir_ls/

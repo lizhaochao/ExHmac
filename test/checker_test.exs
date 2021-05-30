@@ -39,9 +39,9 @@ defmodule CheckerTest do
     test "should_warn" do
       with ratio <- 0.01,
            curr_ts <- 100 do
-        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_500, ratio, true)
-        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_000, ratio, true)
-        assert :should_warn == Checker.do_warn_offset(curr_ts, 99_500, ratio, true)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_500, ratio)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 100_000, ratio)
+        assert :should_warn == Checker.do_warn_offset(curr_ts, 99_500, ratio)
       end
     end
 
@@ -49,7 +49,7 @@ defmodule CheckerTest do
       with any_ratio <- 0.01,
            any_curr_ts <- 100,
            any_ts <- 101 do
-        assert :ignore == Checker.do_warn_offset(any_curr_ts, any_ts, any_ratio, false)
+        assert :ignore == Checker.do_warn_offset(any_curr_ts, any_ts, any_ratio)
       end
     end
   end
