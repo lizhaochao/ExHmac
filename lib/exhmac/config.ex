@@ -33,7 +33,9 @@ defmodule ExHmac.Config do
       get_secret_key_function_name: get(opts, :get_secret_key_function_name, :get_secret_key),
       # other
       hash_alg: get(opts, :hash_alg, :sha256),
-      warn: get(opts, :warn, true)
+      warn: get(opts, :warn, true),
+      #
+      impl_m: nil
     }
   end
 
