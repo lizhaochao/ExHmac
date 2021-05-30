@@ -3,11 +3,6 @@ defmodule KVRepoTest do
 
   alias ExHmac.KVRepo
 
-  setup_all do
-    start_supervised!(KVRepo)
-    :ok
-  end
-
   test "fetch not exists key" do
     assert :error == KVRepo.fetch(:any_key)
   end
