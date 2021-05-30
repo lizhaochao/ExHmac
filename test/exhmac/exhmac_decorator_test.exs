@@ -6,9 +6,11 @@ defmodule AuthCenter.Hmac do
     get_secret_key_function_name: :get_secret_by_key,
     format_resp_function_name: :format_resp
 
+  alias ExHmac.TestHelper
+
   def get_secret_by_key(access_key) do
     {access_key}
-    "test_secret_key"
+    TestHelper.get_test_secret_key()
   end
 
   def format_resp(resp) do
@@ -35,9 +37,10 @@ end
 defmodule ExHmacDecoratorTest do
   use ExUnit.Case
   import AuthCenter.Hmac
+  alias ExHmac.TestHelper
 
-  @access_key "test_access_key"
-  @secret_key "test_secret_key"
+  @access_key TestHelper.get_test_access_key()
+  @secret_key TestHelper.get_test_secret_key()
   @username "ljy"
   @passwd "funny"
 

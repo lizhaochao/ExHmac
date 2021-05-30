@@ -6,9 +6,10 @@ defmodule Project do
   import Project.Hmac
 
   alias ExHmac.Test
+  alias ExHmac.TestHelper
 
   def sign_in(json_string) do
-    with params <- Test.deserialize(json_string),
+    with params <- TestHelper.deserialize(json_string),
          access_key <- Test.get_key(params),
          secret_key <- Test.get_secret(access_key),
          :ok <- check_hmac(params, access_key, secret_key),
@@ -26,6 +27,7 @@ defmodule ExHmacTest do
   import Project.Hmac
 
   alias ExHmac.Test
+  alias ExHmac.TestHelper
 
   doctest ExHmac
 
@@ -35,11 +37,11 @@ defmodule ExHmacTest do
       with params <- Test.make_req_params(),
            signature <- Test.make_signature(params),
            params <- Test.append_signature(params, signature),
-           json_string <- Test.serialize(params),
+           json_string <- TestHelper.serialize(params),
            # 2. invoke api
            resp <- Project.sign_in(json_string),
            # 3. process resp data
-           res_params <- Test.deserialize(resp),
+           res_params <- TestHelper.deserialize(resp),
            access_key <- Test.get_key(),
            secret_key <- Test.get_secret(access_key),
            %{"result" => result} <- res_params do
@@ -54,11 +56,11 @@ defmodule ExHmacTest do
       with params <- Test.make_req_params() |> Map.new(),
            signature <- Test.make_signature(params),
            params <- Test.append_signature(params, signature),
-           json_string <- Test.serialize(params),
+           json_string <- TestHelper.serialize(params),
            # 2. invoke api
            resp <- Project.sign_in(json_string),
            # 3. process resp data
-           res_params <- Test.deserialize(resp),
+           res_params <- TestHelper.deserialize(resp),
            access_key <- Test.get_key(),
            secret_key <- Test.get_secret(access_key),
            %{"result" => result} <- res_params do
@@ -75,11 +77,11 @@ defmodule ExHmacTest do
       with params <- Test.make_req_params(),
            signature <- Test.make_signature(any: "any"),
            params <- Test.append_signature(params, signature),
-           json_string <- Test.serialize(params),
+           json_string <- TestHelper.serialize(params),
            # 2. invoke api
            resp <- Project.sign_in(json_string),
            # 3. process resp data
-           res_params <- Test.deserialize(resp),
+           res_params <- TestHelper.deserialize(resp),
            access_key <- Test.get_key(),
            secret_key <- Test.get_secret(access_key),
            %{"result" => result} <- res_params do
@@ -94,11 +96,11 @@ defmodule ExHmacTest do
       with params <- Test.make_req_params(gen_timestamp(:millisecond), nil),
            signature <- Test.make_signature(params),
            params <- Test.append_signature(params, signature),
-           json_string <- Test.serialize(params),
+           json_string <- TestHelper.serialize(params),
            # 2. invoke api
            resp <- Project.sign_in(json_string),
            # 3. process resp data
-           res_params <- Test.deserialize(resp),
+           res_params <- TestHelper.deserialize(resp),
            access_key <- Test.get_key(),
            secret_key <- Test.get_secret(access_key),
            %{"result" => result} <- res_params do
@@ -117,19 +119,15 @@ end
 defmodule ExHmac.Test do
   import Project.Hmac
 
-  @access_key "test_access_key"
-  @secret_key "test_secret_key"
-  @error_code -1
+  alias ExHmac.TestHelper
+
+  @access_key TestHelper.get_test_access_key()
+  @secret_key TestHelper.get_test_secret_key()
+  @error_code TestHelper.get_error_code()
 
   def get_key, do: @access_key
   def get_key(%{"access_key" => access_key}), do: access_key
   def get_secret(_key), do: @secret_key
-
-  def serialize({:ok, json_string}), do: json_string
-  def serialize(params), do: params |> Map.new() |> Poison.encode() |> serialize()
-
-  def deserialize({:ok, map}), do: map
-  def deserialize(json_string), do: json_string |> Poison.decode() |> deserialize()
 
   def make_signature(params), do: sign(params, @access_key, @secret_key)
   def append_signature(params, signature), do: Keyword.new(params) ++ [signature: signature]
@@ -138,14 +136,14 @@ defmodule ExHmac.Test do
     with params <- make_res_params(code),
          signature <- make_signature(params),
          params <- append_signature(params, signature),
-         resp <- serialize(params) do
+         resp <- TestHelper.serialize(params) do
       resp
     end
   end
 
   def make_req_params(timestamp \\ nil, nonce \\ nil) do
     # nested data
-    with {:ok, b_value} <- Poison.encode(%{c: "c", d: "d"}),
+    with {:ok, b_value} <- TestHelper.to_json_string(%{c: "c", d: "d"}),
          params <- [
            access_key: @access_key,
            a: 1,
@@ -157,5 +155,11 @@ defmodule ExHmac.Test do
     end
   end
 
-  def make_res_params(code), do: [result: code, timestamp: gen_timestamp(), nonce: gen_nonce()]
+  def make_res_params(code) do
+    [
+      result: code,
+      timestamp: gen_timestamp(),
+      nonce: gen_nonce()
+    ]
+  end
 end
