@@ -16,8 +16,16 @@ defmodule ExHmac.KVRepo do
     GenServer.call(__MODULE__, {:fetch, key})
   end
 
+  def get_and_update(key, fun) when is_function(fun) do
+    GenServer.cast(__MODULE__, {:get_and_update, key, fun})
+  end
+
   def put(key, value) do
     GenServer.cast(__MODULE__, {:put, key, value})
+  end
+
+  def drop(keys) when is_list(keys) do
+    GenServer.cast(__MODULE__, {:drop, keys})
   end
 
   ### Server Callbacks
@@ -33,8 +41,20 @@ defmodule ExHmac.KVRepo do
   end
 
   @impl true
+  def handle_cast({:get_and_update, key, fun}, repo) do
+    {_, repo} = Map.get_and_update(repo, key, fun)
+    {:noreply, repo}
+  end
+
+  @impl true
   def handle_cast({:put, key, value}, repo) do
     repo = Map.put(repo, key, value)
+    {:noreply, repo}
+  end
+
+  @impl true
+  def handle_cast({:drop, keys}, repo) do
+    repo = Map.drop(repo, keys)
     {:noreply, repo}
   end
 end
