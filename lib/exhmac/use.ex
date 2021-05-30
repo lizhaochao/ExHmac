@@ -12,7 +12,7 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             config <- unquote(config),
+             config <- Map.put(unquote(config), :impl_m, __MODULE__),
              :ok <- Helper.check_timestamp(args, config),
              :ok <- Helper.check_nonce(args, config),
              :ok <- Helper.check_signature(args, access_key, secret_key, config) do
@@ -47,45 +47,44 @@ defmodule ExHmac.Use.Decorator do
   defmacro __using__(opts) do
     quote do
       def check_hmac(body, %Decorator.Decorate.Context{} = ctx) do
-        config = Config.get_config(unquote(opts))
-        impl_m = __MODULE__
-        Self.pre_check(impl_m, config)
+        config = unquote(opts) |> Config.get_config() |> Map.put(:impl_m, __MODULE__)
+        Self.pre_check(config)
 
         with config_expr <- Macro.escape(config),
              %{args: args_expr} <- ctx do
           args_expr
           |> Self.make_arg_names()
-          |> Self.check_hmac(args_expr, body, config_expr, impl_m)
+          |> Self.check_hmac(args_expr, body, config_expr)
         end
       end
     end
   end
 
-  def check_hmac(arg_names, args_expr, body, config_expr, impl_m) do
+  def check_hmac(arg_names, args_expr, body, config_expr) do
     quote do
       with exec_body <- fn -> unquote(body) end,
            arg_values <- unquote(args_expr),
            args <- Self.make_args(unquote(arg_names), arg_values) do
-        Self.do_check_hmac(args, exec_body, unquote(config_expr), unquote(impl_m))
+        Self.do_check_hmac(args, exec_body, unquote(config_expr))
       end
     end
   end
 
-  def pre_check(impl_m, config) do
-    %{get_secret_key_function_name: get_secret_key_function_name} = config
+  def pre_check(config) do
+    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
     Checker.require_function!(impl_m, get_secret_key_function_name, 1)
   end
 
   ###
-  def do_check_hmac(args, exec_body, config, impl_m)
+  def do_check_hmac(args, exec_body, config)
       when is_list(args) and is_function(exec_body) do
     with access_key when is_bitstring(access_key) <- get_access_key(args, config),
-         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, impl_m, config),
+         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
          resp <- do_check_hmac(args, access_key, secret_key, config, exec_body),
-         resp <- fmt_resp(resp, impl_m, config) do
+         resp <- fmt_resp(resp, config) do
       Helper.make_resp(resp, config, access_key, secret_key)
     else
-      err_without_hmac -> err_without_hmac |> fmt_resp(impl_m, config) |> Helper.make_resp(config)
+      err_without_hmac -> err_without_hmac |> fmt_resp(config) |> Helper.make_resp(config)
     end
   end
 
@@ -132,8 +131,8 @@ defmodule ExHmac.Use.Decorator do
     end
   end
 
-  def get_secret_key(access_key, impl_m, config) do
-    %{get_secret_key_function_name: get_secret_key_function_name} = config
+  def get_secret_key(access_key, config) do
+    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
 
     impl_m
     |> apply(get_secret_key_function_name, [access_key])
@@ -146,9 +145,9 @@ defmodule ExHmac.Use.Decorator do
   end
 
   ###
-  def fmt_resp(resp, impl_m, config) do
+  def fmt_resp(resp, config) do
     with _ <- Util.log_debug(origin_resp: resp),
-         %{format_resp_function_name: format_resp_function_name} <- config,
+         %{impl_m: impl_m, format_resp_function_name: format_resp_function_name} <- config,
          true <- function_exported?(impl_m, format_resp_function_name, 1),
          resp = apply(impl_m, format_resp_function_name, [resp]),
          _ <- Util.log_debug(resp: resp) do
