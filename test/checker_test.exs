@@ -55,27 +55,8 @@ defmodule CheckerTest do
   end
 
   ### check_nonce
-  describe "do_check_nonce/3" do
+  describe "check_nonce/2" do
     test "ok" do
-      with curr_ts <- 100,
-           ttl <- 20 do
-        assert :ok == Checker.do_check_nonce(curr_ts, nil, ttl)
-        assert :ok == Checker.do_check_nonce(curr_ts, 79, ttl)
-      end
-    end
-
-    test "error" do
-      with curr_ts <- 100,
-           ttl <- 20 do
-        assert :invalid_nonce == Checker.do_check_nonce(curr_ts, 80, ttl)
-        assert :invalid_nonce == Checker.do_check_nonce(curr_ts, 120, ttl)
-      end
-    end
-  end
-
-  describe "get_created_at/1" do
-    test "ok" do
-      assert {:ok, nil} == Checker.get_created_at("a7b801")
     end
   end
 

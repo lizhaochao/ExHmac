@@ -27,7 +27,7 @@ defmodule ExHmac.Checker do
   def do_check_timestamp(_curr_ts, _ts, _offset), do: :timestamp_out_of_range
 
   def get_offset(:millisecond, default), do: default * 1000
-  def get_offset(_prec, default), do: default
+  def get_offset(_second, default), do: default
 
   def warn_offset(curr_ts, ts, warn, warn_text, warn_ratio) do
     do_warn_offset(curr_ts, ts, warn_ratio)
@@ -42,34 +42,22 @@ defmodule ExHmac.Checker do
 
   ### Nonce
   def check_nonce(nonce, config) when is_bitstring(nonce) and is_map(config) do
-    with curr_ts <- Util.get_curr_ts(),
-         %{nonce_ttl: nonce_ttl} <- config,
-         {:ok, created_at} <- get_created_at(nonce) do
-      do_check_nonce(curr_ts, created_at, nonce_ttl)
+    with(
+      curr_ts <- Util.get_curr_ts(),
+      result <- Noncer.check(nonce, curr_ts, config)
+    ) do
+      result
     end
   end
 
   def check_nonce(_, _), do: raise(Error, "check nonce error")
 
-  def do_check_nonce(_curr_ts, nil = _created_at, _ttl), do: :ok
-  def do_check_nonce(curr_ts, created_at, ttl) when curr_ts - created_at > ttl, do: :ok
-  def do_check_nonce(_curr_ts, _created_at, _ttl), do: :invalid_nonce
-
-  def get_created_at(nonce) do
-    nonce
-    |> Noncer.get_created_at()
-    |> case do
-      created_at when is_nil(created_at) or is_integer(created_at) -> {:ok, created_at}
-      _ -> :invalid_storage
-    end
-  end
-
   ###
-  def require_function!(impl_m, f, arity) do
-    if function_exported?(impl_m, f, arity) do
+  def require_function!(impl_m, f, a) do
+    if function_exported?(impl_m, f, a) do
       :ignore
     else
-      raise Error, "!!! not implement #{to_string(f)}/#{arity} function !!!"
+      raise Error, "!!! not implement #{to_string(f)}/#{a} function !!!"
     end
   end
 

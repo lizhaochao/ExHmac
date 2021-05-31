@@ -3,6 +3,26 @@ defmodule ExHmac.KVRepo do
 
   use GenServer
 
+  ### ### ### ### ### Data Structure Example ### ### ### ### ###
+  ###    %{                                                  ###
+  ###      :nonces => %{                                     ###
+  ###        "bbU9Z1" => 1_622_459_320,                      ###
+  ###        "ccu0w7" => 1_622_459_310                       ###
+  ###      },                                                ###
+  ###      :mins => [27_040_988, 27_040_989],                ###
+  ###      :count => %{                                      ###
+  ###        27_040_989 => 2,                                ###
+  ###        27_040_988 => 3                                 ###
+  ###      },                                                ###
+  ###      :shards => %{                                     ###
+  ###        27_040_989 => ["22U9Z1", "11k9l2"],             ###
+  ###        27_040_988 => ["ccu0w7", "bbU9Z1", "aak9l2"]    ###
+  ###      }                                                 ###
+  ###    }                                                   ###
+  ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
+  @init_repo %{nonces: %{}, count: %{}, shards: %{}, mins: []}
+
   ### Public Interface
   def start_link(opts) when is_list(opts) do
     with impl_m <- __MODULE__,
@@ -10,6 +30,10 @@ defmodule ExHmac.KVRepo do
          name_opt <- [name: repo_name] do
       GenServer.start_link(impl_m, :ok, opts ++ name_opt)
     end
+  end
+
+  def get_repo do
+    GenServer.call(__MODULE__, :get_repo)
   end
 
   def fetch(key) do
@@ -30,9 +54,10 @@ defmodule ExHmac.KVRepo do
 
   ### Server Callbacks
   @impl true
-  def init(:ok) do
-    {:ok, %{}}
-  end
+  def init(:ok), do: {:ok, @init_repo}
+
+  @impl true
+  def handle_call(:get_repo, _from, repo), do: {:reply, repo, repo}
 
   @impl true
   def handle_call({:fetch, key}, _from, repo) do

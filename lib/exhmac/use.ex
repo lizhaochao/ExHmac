@@ -80,7 +80,7 @@ defmodule ExHmac.Use.Decorator do
       when is_list(args) and is_function(exec_body) do
     with access_key when is_bitstring(access_key) <- get_access_key(args, config),
          secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
-         resp <- do_check_hmac(args, access_key, secret_key, config, exec_body),
+         resp <- do_check_hmac(args, access_key, secret_key, exec_body, config),
          resp <- fmt_resp(resp, config) do
       Helper.make_resp(resp, config, access_key, secret_key)
     else
@@ -88,7 +88,7 @@ defmodule ExHmac.Use.Decorator do
     end
   end
 
-  def do_check_hmac(args, access_key, secret_key, config, exec_body) do
+  def do_check_hmac(args, access_key, secret_key, exec_body, config) do
     with :ok <- Helper.check_timestamp(args, config),
          :ok <- Helper.check_nonce(args, config),
          :ok <- Helper.check_signature(args, access_key, secret_key, config) do
@@ -148,9 +148,9 @@ defmodule ExHmac.Use.Decorator do
   def fmt_resp(resp, config) do
     with _ <- Util.log_debug(origin_resp: resp),
          %{impl_m: impl_m} <- config,
-         {f_name, f_arity} <- __ENV__.function,
-         true <- function_exported?(impl_m, f_name, f_arity - 1),
-         resp = apply(impl_m, f_name, [resp]),
+         {f, a} <- __ENV__.function,
+         true <- function_exported?(impl_m, f, a - 1),
+         resp = apply(impl_m, f, [resp]),
          _ <- Util.log_debug(resp: resp) do
       {:fmt, resp}
     else

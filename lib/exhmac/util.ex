@@ -32,7 +32,7 @@ defmodule ExHmac.Util do
 
   def get_curr_ts(prec \\ :second)
   def get_curr_ts(:millisecond = prec), do: DateTime.utc_now() |> DateTime.to_unix(prec)
-  def get_curr_ts(_), do: DateTime.utc_now() |> DateTime.to_unix(:second)
+  def get_curr_ts(_second), do: DateTime.utc_now() |> DateTime.to_unix(:second)
 
   def to_keyword(term) when is_list(term), do: term
   def to_keyword(term) when is_map(term), do: Enum.into(term, [])

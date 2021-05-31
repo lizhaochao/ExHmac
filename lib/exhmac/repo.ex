@@ -2,11 +2,13 @@ defmodule ExHmac.Repo do
   @moduledoc false
   alias ExHmac.KVRepo
 
+  def get_repo, do: KVRepo.get_repo()
+
   def get(key, config) do
     config
     |> f_exported?(__ENV__.function)
     |> case do
-      {impl_m, f_name} -> apply(impl_m, f_name, [key])
+      {impl_m, f} -> apply(impl_m, f, [key])
       :default -> KVRepo.fetch(key)
     end
   end
@@ -15,7 +17,7 @@ defmodule ExHmac.Repo do
     config
     |> f_exported?(__ENV__.function)
     |> case do
-      {impl_m, f_name} -> apply(impl_m, f_name, [key, value])
+      {impl_m, f} -> apply(impl_m, f, [key, value])
       :default -> KVRepo.put(key, value)
     end
   end
@@ -24,7 +26,7 @@ defmodule ExHmac.Repo do
     config
     |> f_exported?(__ENV__.function)
     |> case do
-      {impl_m, f_name} -> apply(impl_m, f_name, [keys])
+      {impl_m, f} -> apply(impl_m, f, [keys])
       :default -> KVRepo.drop(keys)
     end
   end
@@ -32,9 +34,9 @@ defmodule ExHmac.Repo do
   ###
   defp f_exported?(config, function) do
     with %{impl_m: impl_m} <- config,
-         {f_name, f_arity} <- function,
-         true <- function_exported?(impl_m, f_name, f_arity - 1) do
-      {impl_m, f_name}
+         {f, a} <- function,
+         true <- function_exported?(impl_m, f, a - 1) do
+      {impl_m, f}
     else
       false -> :default
     end

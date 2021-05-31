@@ -37,46 +37,95 @@ defmodule ExHmacDecoratorTest do
   use ExUnit.Case
   import AuthCenter.Hmac
   alias ExHmac.TestHelper
+  alias ExHmac.Noncer.Worker, as: NoncerWorker
+
+  ### ### ### ### ### !!! NOTICE !!! ### ### ### ### ###
+  ###       If Failed, Run The Following Command:    ###
+  ###                mix test --seed 0               ###
+  ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
   @access_key TestHelper.get_test_access_key()
   @secret_key TestHelper.get_test_secret_key()
   @username "ljy"
   @passwd "funny"
 
-  test "ok" do
-    with access_key <- @access_key,
-         timestamp <- gen_timestamp(),
-         nonce <- gen_nonce(),
-         signature <- make_signature(timestamp, nonce) do
-      resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{username: username, passwd: passwd} = resp = Map.new(resp)
-      assert 5 == map_size(resp)
-      assert @username == username
-      assert @passwd == passwd
+  describe "ok" do
+    test "request x times - ok" do
+      with(
+        times <- 3,
+        _ <- Enum.each(1..times, fn _ -> request() end),
+        %{nonces: nonces, mins: mins, count: count, shards: shards} <- NoncerWorker.all()
+      ) do
+        assert times == length(Map.keys(nonces))
+        assert 1 == length(Map.keys(count))
+        assert 1 == length(Map.keys(shards))
+        assert 1 == length(mins)
+
+        assert mins == Map.keys(count)
+        assert mins == Map.keys(shards)
+        assert MapSet.new(Map.keys(nonces)) == MapSet.new(hd(Map.values(shards)))
+
+        assert times == hd(Map.values(count))
+      end
+    end
+
+    test "ok" do
+      with access_key <- @access_key,
+           timestamp <- gen_timestamp(),
+           nonce <- gen_nonce(),
+           signature <- make_signature(timestamp, nonce) do
+        resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+        %{username: username, passwd: passwd} = resp = Map.new(resp)
+        assert 5 == map_size(resp)
+        assert @username == username
+        assert @passwd == passwd
+      end
     end
   end
 
-  test "error with hmac" do
-    with access_key <- "nil",
-         timestamp <- gen_timestamp(),
-         nonce <- gen_nonce(),
-         signature <- make_signature(timestamp, nonce) do
-      resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{error_msg: error_msg} = resp = Map.new(resp)
-      assert 5 == map_size(resp)
-      assert to_string(:signature_error) == error_msg
+  describe "error" do
+    test "error" do
+      with access_key <- nil,
+           timestamp <- gen_timestamp(),
+           nonce <- gen_nonce(),
+           signature <- make_signature(timestamp, nonce) do
+        resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+        %{error_msg: error_msg} = resp = Map.new(resp)
+        assert 2 == map_size(resp)
+        assert to_string(:access_key_error) == error_msg
+      end
     end
-  end
 
-  test "error" do
-    with access_key <- nil,
-         timestamp <- gen_timestamp(),
-         nonce <- gen_nonce(),
-         signature <- make_signature(timestamp, nonce) do
-      resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      %{error_msg: error_msg} = resp = Map.new(resp)
-      assert 2 == map_size(resp)
-      assert to_string(:access_key_error) == error_msg
+    test "error with hmac" do
+      with access_key <- "nil",
+           timestamp <- gen_timestamp(),
+           nonce <- gen_nonce(),
+           signature <- make_signature(timestamp, nonce) do
+        resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+        %{error_msg: error_msg} = resp = Map.new(resp)
+        assert 5 == map_size(resp)
+        assert to_string(:signature_error) == error_msg
+      end
+    end
+
+    test "error - use same nonce request twice" do
+      with access_key <- @access_key,
+           timestamp <- gen_timestamp(),
+           nonce <- gen_nonce(),
+           signature <- make_signature(timestamp, nonce) do
+        # first
+        resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+        %{username: username, passwd: passwd} = resp = Map.new(resp)
+        assert 5 == map_size(resp)
+        assert @username == username
+        assert @passwd == passwd
+
+        # second
+        resp2 = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+        %{error_msg: error_msg} = resp2 = Map.new(resp2)
+        assert 5 == map_size(resp2)
+        assert to_string(:invalid_nonce) == error_msg
+      end
     end
   end
 
@@ -89,5 +138,18 @@ defmodule ExHmacDecoratorTest do
       nonce: nonce || gen_nonce()
     ]
     |> sign(@access_key, @secret_key)
+  end
+
+  def request do
+    with access_key <- @access_key,
+         timestamp <- gen_timestamp(),
+         nonce <- gen_nonce(),
+         signature <- make_signature(timestamp, nonce) do
+      resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
+      %{username: username, passwd: passwd} = resp = Map.new(resp)
+      assert 5 == map_size(resp)
+      assert @username == username
+      assert @passwd == passwd
+    end
   end
 end

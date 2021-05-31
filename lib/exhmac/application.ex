@@ -4,6 +4,7 @@ defmodule ExHmac.Application do
 
   def start(_type, _args) do
     children = [
+      ExHmac.Noncer.Server,
       ExHmac.KVRepo
     ]
 

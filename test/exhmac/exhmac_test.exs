@@ -109,10 +109,6 @@ defmodule ExHmacTest do
         assert -1 == result
       end
     end
-
-    test "same nonce request twice" do
-      # TODO: impl Noncer
-    end
   end
 end
 
