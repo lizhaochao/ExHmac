@@ -19,7 +19,7 @@ defmodule ExHmac.Noncer.Worker do
     with(
       nonces <- get_nonces(config),
       result <- do_check(nonces, nonce, curr_ts, config),
-      post_check(result, nonces, nonce, curr_ts, config)
+      _ <- save(nonces, nonce, curr_ts, config)
     ) do
       result
     end
@@ -58,15 +58,15 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   ###
-  def post_check(result, nonces, nonce, curr_ts, config) do
+  def save(nonces, nonce, curr_ts, config) do
     with(
-      _ <- update_nonces(nonces, nonce, curr_ts, config),
+      :ok <- update_nonces(nonces, nonce, curr_ts, config),
       min_ts <- ts_to_min(curr_ts, config),
-      _ <- update_count(min_ts, config),
-      _ <- update_shards(min_ts, nonce, config),
-      _ <- update_mins(curr_ts, config)
+      :ok <- update_count(min_ts, config),
+      :ok <- update_shards(min_ts, nonce, config),
+      :ok <- update_mins(curr_ts, config)
     ) do
-      result
+      :ok
     end
   end
 
