@@ -65,51 +65,55 @@ defmodule ExHmac.Noncer.Worker do
   ###
   def save(nonce, curr_ts, config) do
     with(
-      min_ts <- ts_to_min(curr_ts, config),
-      :ok <- update_count(min_ts),
-      :ok <- update_shards(min_ts, nonce),
-      :ok <- update_mins(min_ts)
+      min <- ts_to_min(curr_ts, config),
+      fun <- fn meta ->
+        new_meta =
+          meta
+          |> update_count(min)
+          |> update_shards(min, nonce)
+          |> update_mins(min)
+
+        {meta, new_meta}
+      end,
+      _ <- Repo.get_and_update(:meta, fun)
     ) do
       :ok
     end
   end
 
-  def update_mins(min_ts) do
+  # TODO: count is not exactly, because shards is MapSet type.
+  def update_count(meta, min) do
     with(
-      {:ok, mins} <- Repo.get(:mins),
-      true <- min_ts not in mins,
-      new_mins <- MapSet.put(mins, min_ts),
-      :ok = result <- Repo.update(:mins, new_mins)
+      count <- Map.get(meta, :count),
+      fun <- fn curr -> {curr, if(is_nil(curr), do: 1, else: curr + 1)} end,
+      {_, new_count} <- Map.get_and_update(count, min, fun)
     ) do
-      result
-    else
-      false -> :ignore
+      Map.put(meta, :count, new_count)
     end
   end
 
-  def update_shards(min, nonce) do
+  def update_shards(meta, min, nonce) do
     with(
-      {:ok, shards} <- Repo.get(:shards),
+      shards <- Map.get(meta, :shards),
       fun <- fn shard ->
         new = (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
         {shard, new}
       end,
-      {_, new_shards} <- Map.get_and_update(shards, min, fun),
-      :ok = result <- Repo.update(:shards, new_shards)
+      {_, new_shards} <- Map.get_and_update(shards, min, fun)
     ) do
-      result
+      Map.put(meta, :shards, new_shards)
     end
   end
 
-  # TODO: count is not exactly, because shards is MapSet type.
-  def update_count(min) do
+  def update_mins(meta, min) do
     with(
-      {:ok, cnt} <- Repo.get(:count),
-      fun <- fn curr -> {curr, if(is_nil(curr), do: 1, else: curr + 1)} end,
-      {_, new_cnt} <- Map.get_and_update(cnt, min, fun),
-      :ok = result <- Repo.update(:count, new_cnt)
+      mins <- Map.get(meta, :mins),
+      true <- min not in mins,
+      new_mins <- MapSet.put(mins, min)
     ) do
-      result
+      Map.put(meta, :mins, new_mins)
+    else
+      false -> meta
     end
   end
 
