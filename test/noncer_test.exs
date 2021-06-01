@@ -18,7 +18,7 @@ defmodule NoncerTest do
   @tag :noncer
   @tag timeout: 120_000
   test "ExHmac.Noncer.save_meta_cast/3" do
-    test_fun = fn n, curr_ts -> Noncer.save_meta_cast(n, curr_ts, @config) end
+    test_fun = fn n, curr_ts -> Noncer.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @config) end
     run_n_times(test_fun)
     Worker.all() |> Map.get(:meta)
   end
@@ -53,9 +53,9 @@ defmodule NoncerWorkerTest do
     test "ok - not exists" do
       with(
         curr_ts <- 1_622_474_344,
-        arrived_at <- :not_exists
+        arrived_at <- nil
       ) do
-        assert :ok == Worker.do_check(arrived_at, curr_ts, @config)
+        assert {nil, :not_exists, :ok} == Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -65,7 +65,7 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- curr_ts - ttl
       ) do
-        assert :ok == Worker.do_check(arrived_at, curr_ts, @config)
+        assert {arrived_at, :expired, :ok} == Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -75,7 +75,8 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- curr_ts - ttl + 10
       ) do
-        assert :invalid_nonce == Worker.do_check(arrived_at, curr_ts, @config)
+        assert {arrived_at, :not_expired, :invalid_nonce} ==
+                 Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
   end
