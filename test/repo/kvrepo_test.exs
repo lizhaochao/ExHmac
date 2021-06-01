@@ -1,12 +1,11 @@
 defmodule KVRepoTest do
-  use ExUnit.Case
-
-  alias ExHmac.KVRepo
-
   ### ### ### ### ### !!! NOTICE !!! ### ### ### ### ###
   ###       If Failed, Run The Following Command:    ###
   ###                mix test --seed 0               ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
+  use ExUnit.Case
+  alias ExHmac.KVRepo
 
   test "fetch not exists key" do
     assert :error == KVRepo.fetch(:any_key)

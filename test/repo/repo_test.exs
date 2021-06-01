@@ -1,12 +1,11 @@
 defmodule RepoTest do
-  use ExUnit.Case
-
-  alias ExHmac.{Config, Repo}
-
   ### ### ### ### ### !!! NOTICE !!! ### ### ### ### ###
   ###       If Failed, Run The Following Command:    ###
   ###                mix test --seed 0               ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
+  use ExUnit.Case
+  alias ExHmac.{Config, Repo}
 
   setup_all do
     config = Config.get_config([])

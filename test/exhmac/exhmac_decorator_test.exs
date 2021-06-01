@@ -34,52 +34,39 @@ defmodule AuthCenter do
 end
 
 defmodule ExHmacDecoratorTest do
-  use ExUnit.Case
-  import AuthCenter.Hmac
-  alias ExHmac.TestHelper
-  alias ExHmac.Noncer.Worker, as: NoncerWorker
-
   ### ### ### ### ### !!! NOTICE !!! ### ### ### ### ###
   ###       If Failed, Run The Following Command:    ###
   ###                mix test --seed 0               ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
+  use ExUnit.Case
+  import AuthCenter.Hmac
+  alias ExHmac.TestHelper
+  alias ExHmac.Noncer.Worker, as: NoncerWorker
 
   @access_key TestHelper.get_test_access_key()
   @secret_key TestHelper.get_test_secret_key()
   @username "ljy"
   @passwd "funny"
 
-  describe "ok" do
-    test "request x times - ok" do
-      with(
-        times <- 3,
-        _ <- Enum.each(1..times, fn _ -> request() end),
-        %{nonces: nonces, mins: mins, count: count, shards: shards} <- NoncerWorker.all()
-      ) do
-        assert times == length(Map.keys(nonces))
-        assert 1 == length(Map.keys(count))
-        assert 1 == length(Map.keys(shards))
-        assert 1 == length(mins)
+  test "ok" do
+    with(
+      times <- 10,
+      tasks <- Enum.map(1..times, fn _ -> Task.async(fn -> start_request() end) end),
+      timeout <- 10_000,
+      _ <- Task.await_many(tasks, timeout),
+      %{nonces: nonces, mins: mins, count: count, shards: shards} <- NoncerWorker.all()
+    ) do
+      assert times == length(Map.keys(nonces))
+      assert 1 == length(Map.keys(count))
+      assert 1 == length(Map.keys(shards))
+      assert 1 == length(mins)
 
-        assert mins == Map.keys(count)
-        assert mins == Map.keys(shards)
-        assert MapSet.new(Map.keys(nonces)) == MapSet.new(hd(Map.values(shards)))
+      assert mins == Map.keys(count)
+      assert mins == Map.keys(shards)
+      assert MapSet.new(Map.keys(nonces)) == MapSet.new(hd(Map.values(shards)))
 
-        assert times == hd(Map.values(count))
-      end
-    end
-
-    test "ok" do
-      with access_key <- @access_key,
-           timestamp <- gen_timestamp(),
-           nonce <- gen_nonce(),
-           signature <- make_signature(timestamp, nonce) do
-        resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-        %{username: username, passwd: passwd} = resp = Map.new(resp)
-        assert 5 == map_size(resp)
-        assert @username == username
-        assert @passwd == passwd
-      end
+      assert times == hd(Map.values(count))
     end
   end
 
@@ -140,13 +127,16 @@ defmodule ExHmacDecoratorTest do
     |> sign(@access_key, @secret_key)
   end
 
-  def request do
+  def start_request do
     with access_key <- @access_key,
          timestamp <- gen_timestamp(),
          nonce <- gen_nonce(),
          signature <- make_signature(timestamp, nonce) do
       resp = AuthCenter.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
-      assert 5 == length(resp)
+      %{username: username, passwd: passwd} = resp = Map.new(resp)
+      assert 5 == map_size(resp)
+      assert @username == username
+      assert @passwd == passwd
     end
   end
 end
