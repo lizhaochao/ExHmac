@@ -5,31 +5,26 @@ defmodule RepoTest do
   ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
   use ExUnit.Case
-  alias ExHmac.{Config, Repo}
+  alias ExHmac.Repo
 
-  setup_all do
-    config = Config.get_config([])
-    %{config: config}
+  test "get" do
+    assert :error == Repo.get(:ljy)
   end
 
-  test "get", %{config: config} do
-    assert :error == Repo.get(:ljy, config)
+  test "update" do
+    assert :ok == Repo.update(:name, :ljy)
   end
 
-  test "update", %{config: config} do
-    assert :ok == Repo.update(:name, :ljy, config)
+  test "delete" do
+    assert :ok == Repo.delete([:name])
   end
 
-  test "delete", %{config: config} do
-    assert :ok == Repo.delete([:name], config)
-  end
-
-  test "get -> update -> get -> delete -> get", %{config: config} do
+  test "get -> update -> get -> delete -> get" do
     key = :any_key
-    assert :error == Repo.get(key, config)
-    assert :ok == Repo.update(key, :ljy, config)
-    assert {:ok, :ljy} == Repo.get(key, config)
-    assert :ok == Repo.delete([key], config)
-    assert :error == Repo.get(key, config)
+    assert :error == Repo.get(key)
+    assert :ok == Repo.update(key, :ljy)
+    assert {:ok, :ljy} == Repo.get(key)
+    assert :ok == Repo.delete([key])
+    assert :error == Repo.get(key)
   end
 end

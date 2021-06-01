@@ -66,21 +66,20 @@ defmodule ExHmac.Noncer.Worker do
   def save(nonce, curr_ts, config) do
     with(
       min_ts <- ts_to_min(curr_ts, config),
-      :ok <- update_count(min_ts, config),
-      :ok <- update_shards(min_ts, nonce, config),
-      :ok <- update_mins(curr_ts, config)
+      :ok <- update_count(min_ts),
+      :ok <- update_shards(min_ts, nonce),
+      :ok <- update_mins(min_ts)
     ) do
       :ok
     end
   end
 
-  def update_mins(curr_ts, config) do
+  def update_mins(min_ts) do
     with(
-      min_ts <- ts_to_min(curr_ts, config),
-      {:ok, mins} <- Repo.get(:mins, config),
+      {:ok, mins} <- Repo.get(:mins),
       true <- min_ts not in mins,
       new_mins <- MapSet.put(mins, min_ts),
-      :ok = result <- Repo.update(:mins, new_mins, config)
+      :ok = result <- Repo.update(:mins, new_mins)
     ) do
       result
     else
@@ -88,27 +87,27 @@ defmodule ExHmac.Noncer.Worker do
     end
   end
 
-  def update_shards(min, nonce, config) do
+  def update_shards(min, nonce) do
     with(
-      {:ok, shards} <- Repo.get(:shards, config),
+      {:ok, shards} <- Repo.get(:shards),
       fun <- fn shard ->
         new = (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
         {shard, new}
       end,
       {_, new_shards} <- Map.get_and_update(shards, min, fun),
-      :ok = result <- Repo.update(:shards, new_shards, config)
+      :ok = result <- Repo.update(:shards, new_shards)
     ) do
       result
     end
   end
 
   # TODO: count is not exactly, because shards is MapSet type.
-  def update_count(min, config) do
+  def update_count(min) do
     with(
-      {:ok, cnt} <- Repo.get(:count, config),
+      {:ok, cnt} <- Repo.get(:count),
       fun <- fn curr -> {curr, if(is_nil(curr), do: 1, else: curr + 1)} end,
       {_, new_cnt} <- Map.get_and_update(cnt, min, fun),
-      :ok = result <- Repo.update(:count, new_cnt, config)
+      :ok = result <- Repo.update(:count, new_cnt)
     ) do
       result
     end
