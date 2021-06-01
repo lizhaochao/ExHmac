@@ -15,6 +15,7 @@ defmodule ExHmac.Noncer.Worker do
 
   alias ExHmac.Repo
 
+  # TODO: improve save operation execute performance
   def check(nonce, curr_ts, config) do
     with(
       arrived_at <- get_and_update_nonce(nonce, curr_ts),
@@ -101,6 +102,7 @@ defmodule ExHmac.Noncer.Worker do
     end
   end
 
+  # TODO: count is not exactly, because shards is MapSet type.
   def update_count(min, config) do
     with(
       {:ok, cnt} <- Repo.get(:count, config),

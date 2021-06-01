@@ -5,6 +5,9 @@ defmodule PerformanceTest do
 
   @config Config.get_config([])
 
+  # TODO: test without gen timestamp & gen nonce tests
+  # TODO: test with many prepared nonces
+
   @tag :performance
   test "Noncer.check" do
     with(
