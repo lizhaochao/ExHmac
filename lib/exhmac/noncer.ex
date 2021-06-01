@@ -7,7 +7,7 @@ defmodule ExHmac.Noncer do
   def check(nonce, curr_ts, config) do
     with(
       {arrived_at, raw_result, result} <- check_call(nonce, curr_ts, config),
-      _ <- save_meta_call(raw_result, nonce, arrived_at, curr_ts, config)
+      _ <- save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config)
     ) do
       result
     end
@@ -17,8 +17,8 @@ defmodule ExHmac.Noncer do
     GenServer.call(Server, {nonce, curr_ts, config})
   end
 
-  def save_meta_call(raw_result, nonce, arrived_at, curr_ts, config) do
-    GenServer.call(Server, {:save_meta, raw_result, nonce, arrived_at, curr_ts, config})
+  def save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config) do
+    GenServer.cast(Server, {:save_meta, raw_result, nonce, arrived_at, curr_ts, config})
   end
 
   ###
@@ -209,8 +209,8 @@ defmodule ExHmac.Noncer.Server do
   end
 
   @impl true
-  def handle_call({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, _from, state) do
+  def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, state) do
     Worker.save_meta(raw_result, nonce, arrived_at, curr_ts, config)
-    {:reply, nil, state}
+    {:noreply, state}
   end
 end

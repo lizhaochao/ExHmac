@@ -15,41 +15,43 @@ defmodule NoncerTest do
 
   describe "renew nonce arrived_at" do
     test "not exists -> not expired -> expired with same nonce" do
-      with(
-        %{nonce_ttl: ttl_secs} <- @config,
-        nonce <- "A1B2C3",
-        # first
-        curr_ts1 <- get_curr_ts(),
-        _ <- Noncer.check(nonce, curr_ts1, @config),
-        # second
-        curr_ts2 <- curr_ts1 + (ttl_secs - 20) * 1000,
-        _ <- Noncer.check(nonce, curr_ts2, @config),
-        # third
-        curr_ts3 <- curr_ts2 + ttl_secs * 2 * 1000,
-        _ <- Noncer.check(nonce, curr_ts3, @config)
-      ) do
-        ##  Repo SnapShoot
-        ##  %{
-        ##    meta: %{
-        ##      count: %{27_042_870 => 0, 27_042_885 => 0, 27_042_900 => 1},
-        ##      mins: #MapSet<[27042870, 27042885, 27042900]>,
-        ##      shards: %{
-        ##        27_042_870 => #MapSet<[]>,
-        ##        27_042_885 => #MapSet<[]>,
-        ##        27_042_900 => #MapSet<["A1B2C3"]>
-        ##      }
-        ##    },
-        ##    nonces: %{"A1B2C3" => 1_622_574_051_220}
-        ##  }
+      %{nonce_ttl: ttl_secs} = @config
+      nonce = "A1B2C3"
+      # first
+      curr_ts1 = get_curr_ts()
+      Noncer.check(nonce, curr_ts1, @config)
+      # second
+      curr_ts2 = curr_ts1 + (ttl_secs - 20) * 1000
+      Noncer.check(nonce, curr_ts2, @config)
+      # third
+      curr_ts3 = curr_ts2 + ttl_secs * 2 * 1000
+      Noncer.check(nonce, curr_ts3, @config)
 
-        %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Worker.all()
-        assert 1 == length(Map.keys(nonces))
-        assert 1 == Enum.sum(Map.values(count))
-        assert 3 == length(MapSet.to_list(mins))
+      # await is not really work for this situation.
+      # fn -> want_run_fun.() end |> Task.async() |> Task.await()
+      # so just sleep a little milliseconds.
+      Process.sleep(10)
 
-        to_list_fum = fn shard -> MapSet.to_list(shard) end
-        assert 1 == length(List.flatten(Enum.map(Map.values(shards), to_list_fum)))
-      end
+      ##  Repo SnapShoot
+      ##  %{
+      ##    meta: %{
+      ##      count: %{27_042_870 => 0, 27_042_885 => 0, 27_042_900 => 1},
+      ##      mins: #MapSet<[27042870, 27042885, 27042900]>,
+      ##      shards: %{
+      ##        27_042_870 => #MapSet<[]>,
+      ##        27_042_885 => #MapSet<[]>,
+      ##        27_042_900 => #MapSet<["A1B2C3"]>
+      ##      }
+      ##    },
+      ##    nonces: %{"A1B2C3" => 1_622_574_051_220}
+      ##  }
+      %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Worker.all()
+      assert 1 == length(Map.keys(nonces))
+      assert 1 == Enum.sum(Map.values(count))
+      assert 3 == length(MapSet.to_list(mins))
+
+      to_list_fum = fn shard -> MapSet.to_list(shard) end
+      assert 1 == length(List.flatten(Enum.map(Map.values(shards), to_list_fum)))
     end
   end
 
@@ -64,7 +66,7 @@ defmodule NoncerTest do
   @tag :noncer
   @tag timeout: 120_000
   test "ExHmac.Noncer.save_meta_cast/3" do
-    test_fun = fn n, curr_ts -> Noncer.save_meta_call(:ok, n, curr_ts - 10, curr_ts, @config) end
+    test_fun = fn n, curr_ts -> Noncer.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @config) end
     run_n_times(test_fun)
     Worker.all() |> Map.get(:meta)
   end
