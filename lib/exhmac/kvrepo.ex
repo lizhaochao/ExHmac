@@ -13,6 +13,7 @@ defmodule ExHmac.KVRepo do
   end
 
   ###
+  def init, do: GenServer.call(Server, :init)
   def get_repo, do: GenServer.call(Server, :get_repo)
   def fetch(key), do: GenServer.call(Server, {:fetch, key})
   def get_in(path), do: GenServer.call(Server, {:get_in, path})
@@ -63,6 +64,12 @@ defmodule ExHmac.KVRepo.Server do
   def init(:ok), do: {:ok, @init_repo}
 
   ## sync
+  @impl true
+  def handle_call(:init, _from, _repo) do
+    new_repo = @init_repo
+    {:reply, new_repo, new_repo}
+  end
+
   @impl true
   def handle_call({:get_and_update_nonce, fun}, _from, repo) do
     {arrived_at, new_repo} = fun.(repo)

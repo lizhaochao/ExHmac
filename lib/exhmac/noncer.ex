@@ -4,11 +4,10 @@ defmodule ExHmac.Noncer do
   alias ExHmac.Noncer.Server
 
   ### Client
-
   def check(nonce, curr_ts, config) do
     with(
       {arrived_at, raw_result, result} <- check_call(nonce, curr_ts, config),
-      _ <- save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config)
+      _ <- save_meta_call(raw_result, nonce, arrived_at, curr_ts, config)
     ) do
       result
     end
@@ -18,8 +17,8 @@ defmodule ExHmac.Noncer do
     GenServer.call(Server, {nonce, curr_ts, config})
   end
 
-  def save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config) do
-    GenServer.cast(Server, {:save_meta, raw_result, nonce, arrived_at, curr_ts, config})
+  def save_meta_call(raw_result, nonce, arrived_at, curr_ts, config) do
+    GenServer.call(Server, {:save_meta, raw_result, nonce, arrived_at, curr_ts, config})
   end
 
   ###
@@ -64,12 +63,19 @@ defmodule ExHmac.Noncer.Worker do
 
   def expired(curr_ts, arrived_at, config) do
     with(
-      %{nonce_ttl: ttl} <- config,
-      true <- curr_ts - arrived_at >= ttl
+      %{nonce_ttl: ttl, precision: precision} <- config,
+      diff <- curr_ts - arrived_at
     ) do
-      :expired
-    else
-      false -> :not_expired
+      precision
+      |> case do
+        :millisecond -> trunc(diff / 1000)
+        _second -> diff
+      end
+      |> Kernel.>=(ttl)
+      |> if(
+        do: :expired,
+        else: :not_expired
+      )
     end
   end
 
@@ -101,11 +107,37 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   #
+  def update_count(repo, curr_min, arrived_at_min, raw_result) do
+    curr_min_count = get_in(repo, [:meta, :count, curr_min])
+    curr_min_count = (curr_min_count && curr_min_count + 1) || 1
+    how = in_same_min(curr_min, arrived_at_min, raw_result)
+
+    new_curr_min_count =
+      if how == :same_min and curr_min_count > 1 do
+        curr_min_count - 1
+      else
+        curr_min_count
+      end
+
+    repo = put_in(repo, [:meta, :count, curr_min], new_curr_min_count)
+    minus_one(repo, arrived_at_min, how)
+  end
+
+  def minus_one(repo, arrived_at_min, :different_mins = _how_update)
+      when not is_nil(arrived_at_min) do
+    old = get_in(repo, [:meta, :count, arrived_at_min])
+    new = old && old - 1
+    put_in(repo, [:meta, :count, arrived_at_min], new)
+  end
+
+  def minus_one(repo, _, _), do: repo
+
+  #
   def update_shards(repo, curr_min, arrived_at_min, nonce, raw_result) do
     with(
       shard <- get_in(repo, [:meta, :shards, curr_min]),
-      how <- how_update(curr_min, arrived_at_min, nonce, raw_result),
-      _ <- delete_nonce_from_shard(repo, arrived_at_min, nonce, how)
+      how <- in_same_min(curr_min, arrived_at_min, raw_result),
+      repo <- delete_nonce_from_shard(repo, arrived_at_min, nonce, how)
     ) do
       cond do
         is_nil(shard) -> MapSet.new([nonce])
@@ -119,52 +151,19 @@ defmodule ExHmac.Noncer.Worker do
     end
   end
 
-  def delete_nonce_from_shard(repo, arrived_at_min, nonce, :different_mins = _how_update) do
-    shard = get_in(repo, [:meta, :shards, arrived_at_min])
-    new_shard = MapSet.delete(shard, nonce)
-    put_in(repo, [:meta, :count, arrived_at_min], new_shard)
+  def delete_nonce_from_shard(repo, arrived_at_min, nonce, :different_mins = _how_update)
+      when not is_nil(arrived_at_min) do
+    old = get_in(repo, [:meta, :shards, arrived_at_min])
+    new = old && MapSet.delete(old, nonce)
+    put_in(repo, [:meta, :shards, arrived_at_min], new)
   end
 
-  def delete_nonce_from_shard(_, _, _, _), do: :ignore
+  def delete_nonce_from_shard(repo, _, _, _), do: repo
 
   #
-  def update_count(repo, curr_min, arrived_at_min, raw_result) do
-    curr_min_count = get_in(repo, [:meta, :count, curr_min])
-    how = how_update(curr_min_count, curr_min, arrived_at_min, raw_result)
-
-    new_curr_min_count =
-      case how do
-        :init -> 1
-        :in_the_same_min -> curr_min_count
-        :not_exists -> curr_min_count + 1
-        :different_mins -> curr_min_count + 1
-      end
-
-    minus_one(repo, arrived_at_min, how)
-    put_in(repo, [:meta, :count, curr_min], new_curr_min_count)
-  end
-
-  def minus_one(repo, arrived_at_min, :different_mins = _how_update) do
-    arrived_at_min_count = get_in(repo, [:meta, :count, arrived_at_min])
-    put_in(repo, [:meta, :count, arrived_at_min], arrived_at_min_count - 1)
-  end
-
-  def minus_one(_, _, _), do: :ignore
-
-  #
-  def how_update(nil = _curr_min_count, _, _, _), do: :init
-  def how_update(_, _, _, :not_exists = _raw_result), do: :not_exists
-
-  def how_update(_curr_min_count, curr_min, arrived_at_min, raw_result) do
-    how_update(curr_min, arrived_at_min, raw_result)
-  end
-
-  def how_update(curr_min, arrived_at_min, raw_result)
-      when curr_min == arrived_at_min and raw_result in [:not_expired, :expired] do
-    :in_the_same_min
-  end
-
-  def how_update(_, _, _), do: :different_mins
+  def in_same_min(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
+  def in_same_min(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_min
+  def in_same_min(_, _, _), do: :different_mins
 
   def to_minute(nil = ts, _config), do: ts
 
@@ -210,8 +209,8 @@ defmodule ExHmac.Noncer.Server do
   end
 
   @impl true
-  def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, state) do
+  def handle_call({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, _from, state) do
     Worker.save_meta(raw_result, nonce, arrived_at, curr_ts, config)
-    {:noreply, state}
+    {:reply, nil, state}
   end
 end

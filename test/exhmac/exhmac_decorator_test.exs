@@ -43,6 +43,12 @@ defmodule ExHmacDecoratorTest do
   import AuthCenter.Hmac
   alias ExHmac.TestHelper
   alias ExHmac.Noncer.Worker, as: NoncerWorker
+  alias ExHmac.Repo
+
+  setup_all do
+    Repo.reinit()
+    :ok
+  end
 
   @access_key TestHelper.get_test_access_key()
   @secret_key TestHelper.get_test_secret_key()

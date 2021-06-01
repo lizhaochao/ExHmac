@@ -28,6 +28,12 @@ defmodule ExHmacTest do
 
   alias ExHmac.Test
   alias ExHmac.TestHelper
+  alias ExHmac.Repo
+
+  setup_all do
+    Repo.reinit()
+    :ok
+  end
 
   doctest ExHmac
 

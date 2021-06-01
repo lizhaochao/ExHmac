@@ -41,6 +41,12 @@ defmodule ExHmacOptsTest do
 
   alias ExHmac.Opts.Test
   alias ExHmac.TestHelper
+  alias ExHmac.Repo
+
+  setup_all do
+    Repo.reinit()
+    :ok
+  end
 
   test "ok" do
     # 1. prepare req data
