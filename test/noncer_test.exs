@@ -14,7 +14,7 @@ defmodule NoncerTest do
   @config [] |> Config.get_config() |> Map.put(:precision, @prec)
 
   describe "renew nonce arrived_at" do
-    test "not expired - same nonce - different mins" do
+    test "not exists -> not expired -> expired with same nonce" do
       with(
         %{nonce_ttl: ttl_secs} <- @config,
         nonce <- "A1B2C3",
@@ -22,7 +22,7 @@ defmodule NoncerTest do
         curr_ts1 <- get_curr_ts(),
         _ <- Noncer.check(nonce, curr_ts1, @config),
         # second
-        curr_ts2 <- curr_ts1 + ttl_secs * 1000,
+        curr_ts2 <- curr_ts1 + (ttl_secs - 20) * 1000,
         _ <- Noncer.check(nonce, curr_ts2, @config),
         # third
         curr_ts3 <- curr_ts2 + ttl_secs * 2 * 1000,
