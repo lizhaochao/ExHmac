@@ -4,11 +4,16 @@ defmodule ExHmac.KVRepo do
   alias ExHmac.KVRepo.Server
 
   ### Public Interface
-  def get_repo, do: GenServer.call(Server, :get_repo)
-
-  def get_and_update_nonce(nonce, curr_ts) do
-    GenServer.call(Server, {:get_and_update_nonce, nonce, curr_ts})
+  def get_and_update_nonce(fun) do
+    GenServer.call(Server, {:get_and_update_nonce, fun})
   end
+
+  def update_meta(fun) do
+    GenServer.cast(Server, {:update_meta, fun})
+  end
+
+  ###
+  def get_repo, do: GenServer.call(Server, :get_repo)
 
   def fetch(key), do: GenServer.call(Server, {:fetch, key})
 
@@ -65,17 +70,13 @@ defmodule ExHmac.KVRepo.Server do
 
   ## sync
   @impl true
-  def handle_call(:get_repo, _from, repo), do: {:reply, repo, repo}
+  def handle_call({:get_and_update_nonce, fun}, _from, repo) do
+    {arrived_at, new_repo} = fun.(repo)
+    {:reply, arrived_at, new_repo}
+  end
 
   @impl true
-  def handle_call({:get_and_update_nonce, nonce, curr_ts}, _from, repo) do
-    with(
-      arrived_at <- get_in(repo, [:nonces, nonce]),
-      new_repo <- put_in(repo, [:nonces, nonce], curr_ts)
-    ) do
-      {:reply, arrived_at, new_repo}
-    end
-  end
+  def handle_call(:get_repo, _from, repo), do: {:reply, repo, repo}
 
   @impl true
   def handle_call({:fetch, key}, _from, repo) do
@@ -96,6 +97,12 @@ defmodule ExHmac.KVRepo.Server do
   end
 
   ## async
+  @impl true
+  def handle_cast({:update_meta, fun}, repo) do
+    new_repo = fun.(repo)
+    {:noreply, new_repo}
+  end
+
   @impl true
   def handle_cast({:put, key, value}, repo) do
     new_repo = Map.put(repo, key, value)

@@ -39,8 +39,17 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   def get_and_update_nonce(nonce, curr_ts) do
-    nonce
-    |> Repo.get_and_update_nonce(curr_ts)
+    fun = fn repo ->
+      with(
+        arrived_at <- get_in(repo, [:nonces, nonce]),
+        new_repo <- put_in(repo, [:nonces, nonce], curr_ts)
+      ) do
+        {arrived_at, new_repo}
+      end
+    end
+
+    fun
+    |> Repo.get_and_update_nonce()
     |> case do
       nil -> :not_exists
       arrived_at -> arrived_at
@@ -71,45 +80,47 @@ defmodule ExHmac.Noncer.Worker do
 
   ###
   def save_meta(nonce, curr_ts, config) do
-    with(
-      min <- ts_to_min(curr_ts, config),
-      :ok <- update_shards(min, nonce),
-      :ok <- update_count(min),
-      :ok <- update_mins(min)
-    ) do
-      :ok
+    min = ts_to_min(curr_ts, config)
+
+    fun = fn repo ->
+      repo
+      |> update_shards(min, nonce)
+      |> update_count(min)
+      |> update_mins(min)
     end
+
+    Repo.update_meta(fun)
   end
 
-  def update_shards(min, nonce) do
+  def update_shards(repo, min, nonce) do
     with(
-      shard <- Repo.get_in([:meta, :shards, min]),
+      shard <- get_in(repo, [:meta, :shards, min]),
       new_shard <-
         (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
     ) do
-      Repo.update_in([:meta, :shards, min], new_shard)
+      put_in(repo, [:meta, :shards, min], new_shard)
     end
   end
 
   # TODO: count is not exactly, because shards is MapSet type.
-  def update_count(min) do
+  def update_count(repo, min) do
     with(
-      min_count <- Repo.get_in([:meta, :count, min]),
+      min_count <- get_in(repo, [:meta, :count, min]),
       new_min_count <- if(is_nil(min_count), do: 1, else: min_count + 1)
     ) do
-      Repo.update_in([:meta, :count, min], new_min_count)
+      put_in(repo, [:meta, :count, min], new_min_count)
     end
   end
 
-  def update_mins(min) do
+  def update_mins(repo, min) do
     with(
-      mins <- Repo.get_in([:meta, :mins]),
+      mins <- get_in(repo, [:meta, :mins]),
       true <- min not in mins,
       new_mins <- MapSet.put(mins, min)
     ) do
-      Repo.update_in([:meta, :mins], new_mins)
+      put_in(repo, [:meta, :mins], new_mins)
     else
-      false -> :ok
+      false -> repo
     end
   end
 
