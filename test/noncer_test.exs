@@ -10,10 +10,9 @@ defmodule NoncerTest do
     test "ok - not exists" do
       with(
         curr_ts <- 1_622_474_344,
-        nonces <- %{},
-        nonce <- "A1B2C3"
+        arrived_at <- :not_exists
       ) do
-        assert :ok == Worker.do_check(nonces, nonce, curr_ts, @config)
+        assert :ok == Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -21,10 +20,9 @@ defmodule NoncerTest do
       with(
         %{nonce_ttl: ttl} <- @config,
         curr_ts <- 1_622_474_344,
-        nonces <- %{"A1B2C3" => curr_ts - ttl},
-        nonce <- "A1B2C3"
+        arrived_at <- curr_ts - ttl
       ) do
-        assert :ok == Worker.do_check(nonces, nonce, curr_ts, @config)
+        assert :ok == Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -32,10 +30,9 @@ defmodule NoncerTest do
       with(
         %{nonce_ttl: ttl} <- @config,
         curr_ts <- 1_622_474_344,
-        nonces <- %{"A1B2C3" => curr_ts - ttl + 10},
-        nonce <- "A1B2C3"
+        arrived_at <- curr_ts - ttl + 10
       ) do
-        assert :invalid_nonce == Worker.do_check(nonces, nonce, curr_ts, @config)
+        assert :invalid_nonce == Worker.do_check(arrived_at, curr_ts, @config)
       end
     end
   end

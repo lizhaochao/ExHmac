@@ -17,34 +17,38 @@ defmodule ExHmac.Noncer.Worker do
 
   def check(nonce, curr_ts, config) do
     with(
-      nonces <- get_nonces(config),
-      result <- do_check(nonces, nonce, curr_ts, config),
-      _ <- save(nonces, nonce, curr_ts, config)
+      arrived_at <- get_and_update_nonce(nonce, curr_ts),
+      result <- do_check(arrived_at, curr_ts, config),
+      _ <- save(nonce, curr_ts, config)
     ) do
       result
     end
   end
 
-  def get_nonces(config) do
+  def get_and_update_nonce(nonce, curr_ts) do
+    fun = fn nonces ->
+      arrived_at = Map.get(nonces, nonce, :not_exists)
+      new_nonces = Map.put(nonces, nonce, curr_ts)
+      {arrived_at, new_nonces}
+    end
+
     :nonces
-    |> Repo.get(config)
+    |> Repo.get_and_update(fun)
     |> case do
-      {:ok, nonces} -> nonces
-      err -> do_throw(err)
+      {arrived_at, _} -> arrived_at
     end
   end
 
-  def do_check(nonces, nonce, curr_ts, config) do
-    with(
-      arrived_at when is_integer(arrived_at) <- Map.get(nonces, nonce, :not_exists),
-      :not_expired <- expired(curr_ts, arrived_at, config)
-    ) do
-      :invalid_nonce
-    else
-      :not_exists -> :ok
+  def do_check(arrived_at, curr_ts, config) when is_integer(arrived_at) do
+    curr_ts
+    |> expired(arrived_at, config)
+    |> case do
+      :not_expired -> :invalid_nonce
       :expired -> :ok
     end
   end
+
+  def do_check(:not_exists = _arrived_at, _curr_ts, _config), do: :ok
 
   def expired(curr_ts, arrived_at, config) do
     with(
@@ -58,26 +62,14 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   ###
-  def save(nonces, nonce, curr_ts, config) do
+  def save(nonce, curr_ts, config) do
     with(
-      :ok <- update_nonces(nonces, nonce, curr_ts, config),
       min_ts <- ts_to_min(curr_ts, config),
       :ok <- update_count(min_ts, config),
       :ok <- update_shards(min_ts, nonce, config),
       :ok <- update_mins(curr_ts, config)
     ) do
       :ok
-    end
-  end
-
-  def update_nonces(nonces, nonce, curr_ts, config) do
-    with(
-      new_nonces <- Map.put(nonces, nonce, curr_ts),
-      :ok = result <- Repo.update(:nonces, new_nonces, config)
-    ) do
-      result
-    else
-      err -> do_throw(err)
     end
   end
 
@@ -93,7 +85,6 @@ defmodule ExHmac.Noncer.Worker do
       result
     else
       false -> :ignore
-      err -> do_throw(err)
     end
   end
 
@@ -105,8 +96,6 @@ defmodule ExHmac.Noncer.Worker do
       :ok = result <- Repo.update(:shards, new_shards, config)
     ) do
       result
-    else
-      err -> do_throw(err)
     end
   end
 
@@ -118,8 +107,6 @@ defmodule ExHmac.Noncer.Worker do
       :ok = result <- Repo.update(:count, new_cnt, config)
     ) do
       result
-    else
-      err -> do_throw(err)
     end
   end
 
@@ -132,8 +119,6 @@ defmodule ExHmac.Noncer.Worker do
     end
     |> trunc()
   end
-
-  def do_throw(msg), do: throw("Repo Unavailable: #{msg}")
 
   ###
   def all, do: Repo.get_repo()
@@ -151,9 +136,11 @@ defmodule ExHmac.Noncer.Server do
   alias ExHmac.Noncer.Worker
 
   def start_link(opts) when is_list(opts) do
-    with impl_m <- __MODULE__,
-         repo_name <- Noncer,
-         name_opt <- [name: repo_name] do
+    with(
+      impl_m <- __MODULE__,
+      repo_name <- Noncer,
+      name_opt <- [name: repo_name]
+    ) do
       GenServer.start_link(impl_m, :ok, opts ++ name_opt)
     end
   end

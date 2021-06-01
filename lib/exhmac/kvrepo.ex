@@ -25,32 +25,24 @@ defmodule ExHmac.KVRepo do
 
   ### Public Interface
   def start_link(opts) when is_list(opts) do
-    with impl_m <- __MODULE__,
-         repo_name <- impl_m,
-         name_opt <- [name: repo_name] do
+    with(
+      impl_m <- __MODULE__,
+      repo_name <- impl_m,
+      name_opt <- [name: repo_name]
+    ) do
       GenServer.start_link(impl_m, :ok, opts ++ name_opt)
     end
   end
 
-  def get_repo do
-    GenServer.call(__MODULE__, :get_repo)
-  end
+  def get_repo, do: GenServer.call(__MODULE__, :get_repo)
 
-  def fetch(key) do
-    GenServer.call(__MODULE__, {:fetch, key})
-  end
+  def fetch(key), do: GenServer.call(__MODULE__, {:fetch, key})
 
-  def get_and_update(key, fun) when is_function(fun) do
-    GenServer.cast(__MODULE__, {:get_and_update, key, fun})
-  end
+  def get_and_update(key, fun), do: GenServer.call(__MODULE__, {:get_and_update, key, fun})
 
-  def put(key, value) do
-    GenServer.cast(__MODULE__, {:put, key, value})
-  end
+  def put(key, value), do: GenServer.cast(__MODULE__, {:put, key, value})
 
-  def drop(keys) when is_list(keys) do
-    GenServer.cast(__MODULE__, {:drop, keys})
-  end
+  def drop(keys), do: GenServer.cast(__MODULE__, {:drop, keys})
 
   ### Server Callbacks
   @impl true
@@ -66,20 +58,20 @@ defmodule ExHmac.KVRepo do
   end
 
   @impl true
-  def handle_cast({:get_and_update, key, fun}, repo) do
-    {_, repo} = Map.get_and_update(repo, key, fun)
-    {:noreply, repo}
+  def handle_call({:get_and_update, key, fun}, _from, repo) do
+    {_, new_repo} = result = Map.get_and_update(repo, key, fun)
+    {:reply, result, new_repo}
   end
 
   @impl true
   def handle_cast({:put, key, value}, repo) do
-    repo = Map.put(repo, key, value)
-    {:noreply, repo}
+    new_repo = Map.put(repo, key, value)
+    {:noreply, new_repo}
   end
 
   @impl true
   def handle_cast({:drop, keys}, repo) do
-    repo = Map.drop(repo, keys)
-    {:noreply, repo}
+    new_repo = Map.drop(repo, keys)
+    {:noreply, new_repo}
   end
 end

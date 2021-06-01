@@ -1,5 +1,6 @@
 defmodule ExHmac.Repo do
   @moduledoc false
+
   alias ExHmac.KVRepo
 
   def get_repo, do: KVRepo.get_repo()
@@ -13,6 +14,8 @@ defmodule ExHmac.Repo do
     end
   end
 
+  def get_and_update(key, fun) when is_function(fun), do: KVRepo.get_and_update(key, fun)
+
   def update(key, value, config) do
     config
     |> f_exported?(__ENV__.function)
@@ -22,7 +25,7 @@ defmodule ExHmac.Repo do
     end
   end
 
-  def delete(keys, config) do
+  def delete(keys, config) when is_list(keys) do
     config
     |> f_exported?(__ENV__.function)
     |> case do

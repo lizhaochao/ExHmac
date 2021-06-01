@@ -37,7 +37,8 @@ defmodule KVRepoTest do
       with value <- :ljy,
            expected <- [value],
            fun <- update_fun(value) do
-        assert :ok == KVRepo.get_and_update(:name, fun)
+        {value, _} = KVRepo.get_and_update(:name, fun)
+        assert nil == value
         assert {:ok, expected} == KVRepo.fetch(:name)
       end
     end
@@ -48,7 +49,8 @@ defmodule KVRepoTest do
            value <- :lzc,
            expected <- [value, init_value],
            fun <- update_fun(value) do
-        assert :ok == KVRepo.get_and_update(:name, fun)
+        {value, _} = KVRepo.get_and_update(:name, fun)
+        assert [init_value] == value
         assert {:ok, expected} == KVRepo.fetch(:name)
       end
     end
