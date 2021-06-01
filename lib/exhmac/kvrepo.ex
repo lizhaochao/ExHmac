@@ -21,7 +21,7 @@ defmodule ExHmac.KVRepo do
   ###    }                                                   ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-  @init_repo %{nonces: %{}, count: %{}, shards: %{}, mins: []}
+  @init_repo %{nonces: %{}, count: %{}, shards: %{}, mins: MapSet.new()}
 
   ### Public Interface
   def start_link(opts) when is_list(opts) do

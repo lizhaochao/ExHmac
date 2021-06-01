@@ -60,10 +60,10 @@ defmodule ExHmacDecoratorTest do
       assert times == length(Map.keys(nonces))
       assert 1 == length(Map.keys(count))
       assert 1 == length(Map.keys(shards))
-      assert 1 == length(mins)
+      assert 1 == length(MapSet.to_list(mins))
 
-      assert mins == Map.keys(count)
-      assert mins == Map.keys(shards)
+      assert MapSet.to_list(mins) == Map.keys(count)
+      assert MapSet.to_list(mins) == Map.keys(shards)
       assert MapSet.new(Map.keys(nonces)) == MapSet.new(hd(Map.values(shards)))
 
       assert times == hd(Map.values(count))

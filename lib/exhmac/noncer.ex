@@ -77,9 +77,8 @@ defmodule ExHmac.Noncer.Worker do
     with(
       min_ts <- ts_to_min(curr_ts, config),
       {:ok, mins} <- Repo.get(:mins, config),
-      latest_min <- List.first(mins),
-      true <- latest_min != min_ts,
-      new_mins <- (latest_min && [min_ts | mins]) || [min_ts],
+      true <- min_ts not in mins,
+      new_mins <- MapSet.put(mins, min_ts),
       :ok = result <- Repo.update(:mins, new_mins, config)
     ) do
       result
@@ -91,7 +90,10 @@ defmodule ExHmac.Noncer.Worker do
   def update_shards(min, nonce, config) do
     with(
       {:ok, shards} <- Repo.get(:shards, config),
-      fun <- fn curr -> {curr, (curr && [nonce | curr]) || [nonce]} end,
+      fun <- fn shard ->
+        new = (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
+        {shard, new}
+      end,
       {_, new_shards} <- Map.get_and_update(shards, min, fun),
       :ok = result <- Repo.update(:shards, new_shards, config)
     ) do
