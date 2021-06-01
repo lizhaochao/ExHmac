@@ -14,17 +14,11 @@ defmodule ExHmac.KVRepo do
 
   ###
   def get_repo, do: GenServer.call(Server, :get_repo)
-
   def fetch(key), do: GenServer.call(Server, {:fetch, key})
-
   def get_in(path), do: GenServer.call(Server, {:get_in, path})
-
   def get_and_update(key, fun), do: GenServer.call(Server, {:get_and_update, key, fun})
-
   def put(key, value), do: GenServer.cast(Server, {:put, key, value})
-
   def put_in(path, value), do: GenServer.cast(Server, {:put_in, path, value})
-
   def drop(keys), do: GenServer.cast(Server, {:drop, keys})
 end
 
