@@ -135,7 +135,7 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   ###
-  def all, do: Repo.get_repo()
+  def all, do: Repo.get_all()
 end
 
 defmodule ExHmac.Noncer.Server do

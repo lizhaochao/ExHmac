@@ -11,7 +11,7 @@ defmodule ExHmac.Repo do
   def update_meta(fun) when is_function(fun), do: KVRepo.update_meta(fun)
 
   ###
-  def get_repo, do: KVRepo.get_repo()
+  def get_all, do: KVRepo.get_repo()
   def get(key), do: KVRepo.fetch(key)
   def get_in(path) when is_list(path), do: KVRepo.get_in(path)
   def get_and_update(key, fun) when is_function(fun), do: KVRepo.get_and_update(key, fun)
