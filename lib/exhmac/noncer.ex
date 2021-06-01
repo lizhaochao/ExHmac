@@ -1,9 +1,26 @@
 defmodule ExHmac.Noncer do
   @moduledoc false
 
+  alias ExHmac.Noncer.Server
+
   ### Client
 
-  def check(nonce, curr_ts, config), do: GenServer.call(__MODULE__, {nonce, curr_ts, config})
+  def check(nonce, curr_ts, config) do
+    with(
+      result <- check_call(nonce, curr_ts, config),
+      _ <- save_meta_cast(nonce, curr_ts, config)
+    ) do
+      result
+    end
+  end
+
+  def check_call(nonce, curr_ts, config) do
+    GenServer.call(Server, {nonce, curr_ts, config})
+  end
+
+  def save_meta_cast(nonce, curr_ts, config) do
+    GenServer.cast(Server, {:save_meta, nonce, curr_ts, config})
+  end
 
   ###
   def gen_nonce(len), do: gen_random(trunc(len / 2))
@@ -16,26 +33,17 @@ defmodule ExHmac.Noncer.Worker do
   alias ExHmac.Repo
 
   def check(nonce, curr_ts, config) do
-    with(
-      arrived_at <- get_and_update_nonce(nonce, curr_ts),
-      result <- do_check(arrived_at, curr_ts, config),
-      _ <- save(nonce, curr_ts, config)
-    ) do
-      result
-    end
+    nonce
+    |> get_and_update_nonce(curr_ts)
+    |> do_check(curr_ts, config)
   end
 
   def get_and_update_nonce(nonce, curr_ts) do
-    fun = fn nonces ->
-      arrived_at = Map.get(nonces, nonce, :not_exists)
-      new_nonces = Map.put(nonces, nonce, curr_ts)
-      {arrived_at, new_nonces}
-    end
-
-    :nonces
-    |> Repo.get_and_update(fun)
+    nonce
+    |> Repo.get_and_update_nonce(curr_ts)
     |> case do
-      {arrived_at, _} -> arrived_at
+      nil -> :not_exists
+      arrived_at -> arrived_at
     end
   end
 
@@ -62,57 +70,46 @@ defmodule ExHmac.Noncer.Worker do
   end
 
   ###
-  def save(nonce, curr_ts, config) do
+  def save_meta(nonce, curr_ts, config) do
     with(
       min <- ts_to_min(curr_ts, config),
-      fun <- fn meta ->
-        new_meta =
-          meta
-          |> update_count(min)
-          |> update_shards(min, nonce)
-          |> update_mins(min)
-
-        {meta, new_meta}
-      end,
-      _ <- Repo.get_and_update(:meta, fun)
+      :ok <- update_shards(min, nonce),
+      :ok <- update_count(min),
+      :ok <- update_mins(min)
     ) do
       :ok
     end
   end
 
+  def update_shards(min, nonce) do
+    with(
+      shard <- Repo.get_in([:meta, :shards, min]),
+      new_shard <-
+        (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
+    ) do
+      Repo.update_in([:meta, :shards, min], new_shard)
+    end
+  end
+
   # TODO: count is not exactly, because shards is MapSet type.
-  def update_count(meta, min) do
+  def update_count(min) do
     with(
-      count <- Map.get(meta, :count),
-      fun <- fn curr -> {curr, if(is_nil(curr), do: 1, else: curr + 1)} end,
-      {_, new_count} <- Map.get_and_update(count, min, fun)
+      min_count <- Repo.get_in([:meta, :count, min]),
+      new_min_count <- if(is_nil(min_count), do: 1, else: min_count + 1)
     ) do
-      Map.put(meta, :count, new_count)
+      Repo.update_in([:meta, :count, min], new_min_count)
     end
   end
 
-  def update_shards(meta, min, nonce) do
+  def update_mins(min) do
     with(
-      shards <- Map.get(meta, :shards),
-      fun <- fn shard ->
-        new = (shard && nonce not in shard && MapSet.put(shard, nonce)) || MapSet.new([nonce])
-        {shard, new}
-      end,
-      {_, new_shards} <- Map.get_and_update(shards, min, fun)
-    ) do
-      Map.put(meta, :shards, new_shards)
-    end
-  end
-
-  def update_mins(meta, min) do
-    with(
-      mins <- Map.get(meta, :mins),
+      mins <- Repo.get_in([:meta, :mins]),
       true <- min not in mins,
       new_mins <- MapSet.put(mins, min)
     ) do
-      Map.put(meta, :mins, new_mins)
+      Repo.update_in([:meta, :mins], new_mins)
     else
-      false -> meta
+      false -> :ok
     end
   end
 
@@ -133,18 +130,15 @@ end
 defmodule ExHmac.Noncer.Server do
   @moduledoc false
 
-  ###
   ### Use GenServer To Make Sure Operations Is Atomic.
-  ###
   use GenServer
 
-  alias ExHmac.Noncer
   alias ExHmac.Noncer.Worker
 
   def start_link(opts) when is_list(opts) do
     with(
       impl_m <- __MODULE__,
-      repo_name <- Noncer,
+      repo_name <- impl_m,
       name_opt <- [name: repo_name]
     ) do
       GenServer.start_link(impl_m, :ok, opts ++ name_opt)
@@ -158,5 +152,11 @@ defmodule ExHmac.Noncer.Server do
   def handle_call({nonce, curr_ts, config}, _from, state) do
     result = Worker.check(nonce, curr_ts, config)
     {:reply, result, state}
+  end
+
+  @impl true
+  def handle_cast({:save_meta, nonce, curr_ts, config}, state) do
+    Worker.save_meta(nonce, curr_ts, config)
+    {:noreply, state}
   end
 end

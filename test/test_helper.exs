@@ -1,1 +1,1 @@
-ExUnit.start(exclude: [:performance])
+ExUnit.start(exclude: [:noncer])

@@ -5,7 +5,7 @@ defmodule ExHmac.Application do
   def start(_type, _args) do
     children = [
       ExHmac.Noncer.Server,
-      ExHmac.KVRepo
+      ExHmac.KVRepo.Server
     ]
 
     opts = [strategy: :one_for_one, name: ExHmac.Supervisor]
