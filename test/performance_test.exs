@@ -4,50 +4,51 @@ defmodule PerformanceTest do
   alias ExHmac.{Config, Noncer}
   alias ExHmac.Noncer.Worker
 
-  @config Config.get_config([])
-
-  # TODO: test without gen timestamp & gen nonce tests
-  # TODO: test with many prepared nonces
+  @precision :millisecond
+  @config [] |> Config.get_config() |> Map.put(:precision, @precision)
 
   @tag :performance
-  test "Noncer.check/3" do
+  @tag timeout: 120_000
+  test "ExHmac.Noncer.check/3" do
     with(
+      times <- 2500,
       start_time <- get_curr_ts(),
-      times <- 50_000,
-      nonce <- "a1b2c3",
-      curr_ts <- 1_622_523_551,
+      curr_ts <- start_time,
       tasks <-
-        Enum.map(1..times, fn _ ->
-          Task.async(fn -> Noncer.check(nonce, curr_ts, @config) end)
+        Enum.map(1..times, fn n ->
+          Task.async(fn -> Noncer.check(n, curr_ts, @config) end)
         end),
       timeout <- 20_000,
       _ <- Task.await_many(tasks, timeout),
       end_time <- get_curr_ts(),
-      expected_max_spent_milli <- 1000
+      expected_max_spent_milli <- 1000,
+      diff <- end_time - start_time
     ) do
-      assert end_time - start_time < expected_max_spent_milli
+      assert diff < expected_max_spent_milli
     end
   end
 
+  @tag :performance
+  @tag timeout: 120_000
   test "ExHmac.Noncer.Worker.save/3" do
     with(
+      times <- 5000,
       start_time <- get_curr_ts(),
-      times <- 35_000,
-      nonce <- "a1b2c3",
-      curr_ts <- 1_622_523_551,
+      curr_ts <- start_time,
       tasks <-
-        Enum.map(1..times, fn _ ->
-          Task.async(fn -> Worker.save(nonce, curr_ts, @config) end)
+        Enum.map(1..times, fn n ->
+          Task.async(fn -> Worker.save(n, curr_ts, @config) end)
         end),
       timeout <- 20_000,
       _ <- Task.await_many(tasks, timeout),
       end_time <- get_curr_ts(),
-      expected_max_spent_milli <- 1000
+      expected_max_spent_milli <- 1000,
+      diff <- end_time - start_time
     ) do
-      assert end_time - start_time < expected_max_spent_milli
+      assert diff < expected_max_spent_milli
     end
   end
 
   ###
-  def get_curr_ts, do: DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+  def get_curr_ts, do: DateTime.utc_now() |> DateTime.to_unix(@precision)
 end
