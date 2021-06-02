@@ -3,24 +3,13 @@ defmodule ExHmac.KVRepo do
 
   alias ExHmac.KVRepo.Server
 
-  ### Public Interface
-  def get_and_update_nonce(fun) do
-    GenServer.call(Server, {:get_and_update_nonce, fun})
-  end
-
-  def update_meta(fun) do
-    GenServer.cast(Server, {:update_meta, fun})
-  end
+  ###
+  def get(fun), do: GenServer.call(Server, {:get, fun})
+  def update(fun), do: GenServer.cast(Server, {:update, fun})
 
   ###
   def init, do: GenServer.call(Server, :init)
   def get_repo, do: GenServer.call(Server, :get_repo)
-  def fetch(key), do: GenServer.call(Server, {:fetch, key})
-  def get_in(path), do: GenServer.call(Server, {:get_in, path})
-  def get_and_update(key, fun), do: GenServer.call(Server, {:get_and_update, key, fun})
-  def put(key, value), do: GenServer.cast(Server, {:put, key, value})
-  def put_in(path, value), do: GenServer.cast(Server, {:put_in, path, value})
-  def drop(keys), do: GenServer.cast(Server, {:drop, keys})
 end
 
 defmodule ExHmac.KVRepo.Server do
@@ -71,54 +60,18 @@ defmodule ExHmac.KVRepo.Server do
   end
 
   @impl true
-  def handle_call({:get_and_update_nonce, fun}, _from, repo) do
-    {arrived_at, new_repo} = fun.(repo)
-    {:reply, arrived_at, new_repo}
-  end
-
-  @impl true
   def handle_call(:get_repo, _from, repo), do: {:reply, repo, repo}
 
   @impl true
-  def handle_call({:fetch, key}, _from, repo) do
-    value = Map.fetch(repo, key)
-    {:reply, value, repo}
-  end
-
-  @impl true
-  def handle_call({:get_in, path}, _from, repo) do
-    value = get_in(repo, path)
-    {:reply, value, repo}
-  end
-
-  @impl true
-  def handle_call({:get_and_update, key, fun}, _from, repo) do
-    {_, new_repo} = result = Map.get_and_update(repo, key, fun)
-    {:reply, result, new_repo}
+  def handle_call({:get, fun}, _from, repo) do
+    {value, new_repo} = fun.(repo)
+    {:reply, value, new_repo}
   end
 
   ## async
   @impl true
-  def handle_cast({:update_meta, fun}, repo) do
+  def handle_cast({:update, fun}, repo) do
     new_repo = fun.(repo)
-    {:noreply, new_repo}
-  end
-
-  @impl true
-  def handle_cast({:put, key, value}, repo) do
-    new_repo = Map.put(repo, key, value)
-    {:noreply, new_repo}
-  end
-
-  @impl true
-  def handle_cast({:put_in, path, value}, repo) do
-    new_repo = put_in(repo, path, value)
-    {:noreply, new_repo}
-  end
-
-  @impl true
-  def handle_cast({:drop, keys}, repo) do
-    new_repo = Map.drop(repo, keys)
     {:noreply, new_repo}
   end
 end

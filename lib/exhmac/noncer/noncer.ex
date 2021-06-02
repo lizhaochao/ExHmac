@@ -3,6 +3,7 @@ defmodule ExHmac.Noncer do
 
   alias ExHmac.Repo
 
+  ###
   def check(nonce, curr_ts, config) do
     nonce
     |> get_and_update_nonce(curr_ts)
@@ -19,7 +20,7 @@ defmodule ExHmac.Noncer do
       end
     end
 
-    Repo.get_and_update_nonce(fun)
+    Repo.get(fun)
   end
 
   def do_check(arrived_at, curr_ts, config) when is_integer(arrived_at) do
@@ -63,7 +64,7 @@ defmodule ExHmac.Noncer do
       |> update_shards(curr_min, arrived_at_min, nonce, raw_result)
     end
 
-    Repo.update_meta(fun)
+    Repo.update(fun)
   end
 
   def update_mins(repo, curr_min) do
@@ -130,7 +131,6 @@ defmodule ExHmac.Noncer do
 
   def delete_nonce_from_shard(repo, _, _, _), do: repo
 
-  ###
   def in_same_shard(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
   def in_same_shard(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_shard
   def in_same_shard(_, _, _), do: :different_shards
