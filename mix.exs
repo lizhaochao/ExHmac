@@ -10,7 +10,7 @@ defmodule ExHmac.MixProject do
 
   def project do
     [
-      app: :ExHmac,
+      app: :exhmac,
       version: @version,
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),

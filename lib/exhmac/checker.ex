@@ -1,7 +1,7 @@
 defmodule ExHmac.Checker do
   @moduledoc false
 
-  alias ExHmac.{Error, Util}
+  alias ExHmac.{Config, Error, Util}
   alias ExHmac.Noncer.Client, as: NoncerClient
 
   @warn_text "your timestamp may be a millisecond precision."
@@ -9,15 +9,13 @@ defmodule ExHmac.Checker do
 
   ### Timestamp
   def check_timestamp(ts, config) when is_integer(ts) and ts > 0 and is_map(config) do
-    %{
-      precision: precision,
-      warn: warn,
-      timestamp_offset: timestamp_offset
-    } = config
-
-    with curr_ts <- Util.get_curr_ts(precision),
-         _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
-         offset <- get_offset(precision, timestamp_offset) do
+    with(
+      %{precision: precision, warn: warn} <- config,
+      timestamp_offset <- Config.get_timestamp_offset(),
+      curr_ts <- Util.get_curr_ts(precision),
+      _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
+      offset <- get_offset(precision, timestamp_offset)
+    ) do
       do_check_timestamp(curr_ts, ts, offset)
     end
   end

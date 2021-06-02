@@ -15,13 +15,17 @@ defmodule ExHmac.Config do
 
   def hmac_hash_algs_prefix, do: "hmac_"
 
+  def get_nonce_ttl,
+    do: Application.get_env(:exhmac, :nonce_ttl, @default_nonce_ttl)
+
+  def get_timestamp_offset,
+    do: Application.get_env(:exhmac, :timestamp_offset, @default_timestamp_offset)
+
   def get_config(opts) when is_list(opts) do
     %{
       # time calculation
       precision: get(opts, :precision, :second),
-      timestamp_offset: get(opts, :timestamp_offset, @default_timestamp_offset),
       nonce_len: get(opts, :nonce_len, @default_nonce_len),
-      nonce_ttl: get(opts, :nonce_ttl, @default_nonce_ttl),
       # default name
       access_key_name: get(opts, :access_key_name, :access_key),
       secret_key_name: get(opts, :secret_key_name, :secret_key),

@@ -1,7 +1,7 @@
 defmodule ExHmac.Noncer do
   @moduledoc false
 
-  alias ExHmac.Repo
+  alias ExHmac.{Config, Repo}
 
   ###
   def check(nonce, curr_ts, config) do
@@ -36,7 +36,8 @@ defmodule ExHmac.Noncer do
 
   def expired(curr_ts, arrived_at, config) do
     with(
-      %{nonce_ttl: ttl, precision: precision} <- config,
+      ttl <- Config.get_nonce_ttl(),
+      %{precision: precision} <- config,
       diff <- curr_ts - arrived_at
     ) do
       precision

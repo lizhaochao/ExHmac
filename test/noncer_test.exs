@@ -16,7 +16,7 @@ defmodule NoncerTest do
 
   describe "renew nonce arrived_at" do
     test "not exists -> not expired -> expired with same nonce" do
-      %{nonce_ttl: ttl_secs} = @config
+      ttl_secs = Config.get_nonce_ttl()
       nonce = "A1B2C3"
       # first
       curr_ts1 = get_curr_ts()
@@ -113,7 +113,7 @@ defmodule NoncerWorkerTest do
 
     test "ok - expired" do
       with(
-        %{nonce_ttl: ttl} <- @config,
+        ttl <- Config.get_nonce_ttl(),
         curr_ts <- 1_622_474_344,
         arrived_at <- curr_ts - ttl
       ) do
@@ -123,7 +123,7 @@ defmodule NoncerWorkerTest do
 
     test "invalid nonce - not expired" do
       with(
-        %{nonce_ttl: ttl} <- @config,
+        ttl <- Config.get_nonce_ttl(),
         curr_ts <- 1_622_474_344,
         arrived_at <- curr_ts - ttl + 10
       ) do
