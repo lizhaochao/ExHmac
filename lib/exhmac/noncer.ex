@@ -110,20 +110,20 @@ defmodule ExHmac.Noncer.Worker do
   def update_count(repo, curr_min, arrived_at_min, raw_result) do
     curr_min_count = get_in(repo, [:meta, :count, curr_min])
     curr_min_count = (curr_min_count && curr_min_count + 1) || 1
-    how = in_same_min(curr_min, arrived_at_min, raw_result)
+    in_same_shard = in_same_shard(curr_min, arrived_at_min, raw_result)
 
     new_curr_min_count =
-      if how == :same_min and curr_min_count > 1 do
+      if in_same_shard == :same_shard and curr_min_count > 1 do
         curr_min_count - 1
       else
         curr_min_count
       end
 
     repo = put_in(repo, [:meta, :count, curr_min], new_curr_min_count)
-    minus_one(repo, arrived_at_min, how)
+    minus_one(repo, arrived_at_min, in_same_shard)
   end
 
-  def minus_one(repo, arrived_at_min, :different_mins = _how_update)
+  def minus_one(repo, arrived_at_min, :different_shards = _in_same_shard)
       when not is_nil(arrived_at_min) do
     old = get_in(repo, [:meta, :count, arrived_at_min])
     new = old && old - 1
@@ -136,8 +136,8 @@ defmodule ExHmac.Noncer.Worker do
   def update_shards(repo, curr_min, arrived_at_min, nonce, raw_result) do
     with(
       shard <- get_in(repo, [:meta, :shards, curr_min]),
-      how <- in_same_min(curr_min, arrived_at_min, raw_result),
-      repo <- delete_nonce_from_shard(repo, arrived_at_min, nonce, how)
+      in_same_shard <- in_same_shard(curr_min, arrived_at_min, raw_result),
+      repo <- delete_nonce_from_shard(repo, arrived_at_min, nonce, in_same_shard)
     ) do
       cond do
         is_nil(shard) -> MapSet.new([nonce])
@@ -151,7 +151,7 @@ defmodule ExHmac.Noncer.Worker do
     end
   end
 
-  def delete_nonce_from_shard(repo, arrived_at_min, nonce, :different_mins = _how_update)
+  def delete_nonce_from_shard(repo, arrived_at_min, nonce, :different_shards)
       when not is_nil(arrived_at_min) do
     old = get_in(repo, [:meta, :shards, arrived_at_min])
     new = old && MapSet.delete(old, nonce)
@@ -161,9 +161,9 @@ defmodule ExHmac.Noncer.Worker do
   def delete_nonce_from_shard(repo, _, _, _), do: repo
 
   #
-  def in_same_min(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
-  def in_same_min(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_min
-  def in_same_min(_, _, _), do: :different_mins
+  def in_same_shard(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
+  def in_same_shard(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_shard
+  def in_same_shard(_, _, _), do: :different_shards
 
   def to_minute(nil = ts, _config), do: ts
 
