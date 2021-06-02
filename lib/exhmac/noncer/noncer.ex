@@ -57,7 +57,7 @@ defmodule ExHmac.Noncer do
     fun = fn repo ->
       repo
       |> update_mins(curr_min)
-      |> update_count(curr_min, arrived_at_min, raw_result)
+      |> update_counts(curr_min, arrived_at_min, raw_result)
       |> update_shards(curr_min, arrived_at_min, nonce, raw_result)
     end
 
@@ -76,27 +76,27 @@ defmodule ExHmac.Noncer do
     end
   end
 
-  def update_count(repo, curr_min, arrived_at_min, raw_result) do
-    curr_min_count = get_in(repo, [:meta, :count, curr_min])
-    curr_min_count = (curr_min_count && curr_min_count + 1) || 1
+  def update_counts(repo, curr_min, arrived_at_min, raw_result) do
+    curr_min_counts = get_in(repo, [:meta, :counts, curr_min])
+    curr_min_counts = (curr_min_counts && curr_min_counts + 1) || 1
     in_same_shard = in_same_shard(curr_min, arrived_at_min, raw_result)
 
-    new_curr_min_count =
-      if in_same_shard == :same_shard and curr_min_count > 1 do
-        curr_min_count - 1
+    new_curr_min_counts =
+      if in_same_shard == :same_shard and curr_min_counts > 1 do
+        curr_min_counts - 1
       else
-        curr_min_count
+        curr_min_counts
       end
 
-    repo = put_in(repo, [:meta, :count, curr_min], new_curr_min_count)
+    repo = put_in(repo, [:meta, :counts, curr_min], new_curr_min_counts)
     minus_one(repo, arrived_at_min, in_same_shard)
   end
 
   def minus_one(repo, arrived_at_min, :different_shards = _in_same_shard)
       when not is_nil(arrived_at_min) do
-    old = get_in(repo, [:meta, :count, arrived_at_min])
+    old = get_in(repo, [:meta, :counts, arrived_at_min])
     new = old && old - 1
-    put_in(repo, [:meta, :count, arrived_at_min], new)
+    put_in(repo, [:meta, :counts, arrived_at_min], new)
   end
 
   def minus_one(repo, _, _), do: repo

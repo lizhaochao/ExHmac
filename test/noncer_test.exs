@@ -11,12 +11,12 @@ defmodule NoncerTest do
     :ok
   end
 
-  @ttl Config.get_nonce_ttl()
+  @ttl Config.get_nonce_ttl_secs()
   @precision :millisecond
 
   describe "renew nonce arrived_at" do
     test "not exists -> not expired -> expired with same nonce" do
-      ttl_secs = Config.get_nonce_ttl()
+      ttl_secs = Config.get_nonce_ttl_secs()
       nonce = "A1B2C3"
       # first
       curr_ts1 = get_curr_ts()
@@ -33,9 +33,9 @@ defmodule NoncerTest do
       # so just sleep a little milliseconds.
       Process.sleep(10)
 
-      %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Noncer.all()
+      %{nonces: nonces, meta: %{shards: shards, mins: mins, counts: counts}} = Noncer.all()
       assert 1 == length(Map.keys(nonces))
-      assert 1 == Enum.sum(Map.values(count))
+      assert 1 == Enum.sum(Map.values(counts))
       assert 3 == length(MapSet.to_list(mins))
 
       to_list_fum = fn shard -> MapSet.to_list(shard) end
@@ -86,7 +86,7 @@ defmodule NoncerWorkerTest do
   alias ExHmac.Config
   alias ExHmac.Noncer
 
-  @ttl Config.get_nonce_ttl()
+  @ttl Config.get_nonce_ttl_secs()
   @precision Config.get_precision()
 
   describe "do_check/4" do

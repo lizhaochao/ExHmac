@@ -16,7 +16,7 @@ defmodule ExHmac.Config do
 
   def hmac_hash_algs_prefix, do: "hmac_"
 
-  def get_nonce_ttl,
+  def get_nonce_ttl_secs,
     do: Application.get_env(:exhmac, :nonce_ttl, @default_nonce_ttl)
 
   def get_timestamp_offset,

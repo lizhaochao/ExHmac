@@ -44,7 +44,7 @@ defmodule ExHmac.Checker do
   def check_nonce(nonce) when is_bitstring(nonce) do
     with(
       curr_ts <- Util.get_curr_ts(),
-      ttl <- Config.get_nonce_ttl(),
+      ttl <- Config.get_nonce_ttl_secs(),
       precision <- Config.get_precision(),
       result <- NoncerClient.check(nonce, curr_ts, ttl, precision)
     ) do

@@ -21,7 +21,7 @@ defmodule ExHmac.KVRepo.Server do
   ###  Repo SnapShoot                                                    ###
   ###  %{                                                                ###
   ###    meta: %{                                                        ###
-  ###      count: %{27_042_870 => 0, 27_042_885 => 0, 27_042_900 => 1},  ###
+  ###      counts: %{27_042_870 => 0, 27_042_885 => 0, 27_042_900 => 1},  ###
   ###      mins: #MapSet<[27042870, 27042885, 27042900]>,                ###
   ###      shards: %{                                                    ###
   ###        27_042_870 => #MapSet<[]>,                                  ###
@@ -33,7 +33,7 @@ defmodule ExHmac.KVRepo.Server do
   ###  }                                                                 ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-  @init_repo %{nonces: %{}, meta: %{count: %{}, shards: %{}, mins: MapSet.new()}}
+  @init_repo %{nonces: %{}, meta: %{counts: %{}, shards: %{}, mins: MapSet.new()}}
 
   def start_link(opts) when is_list(opts) do
     with(

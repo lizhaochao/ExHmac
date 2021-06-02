@@ -62,18 +62,18 @@ defmodule ExHmacDecoratorTest do
       tasks <- Enum.map(1..times, fn _ -> Task.async(fn -> start_request() end) end),
       timeout <- 10_000,
       _ <- Task.await_many(tasks, timeout),
-      %{nonces: nonces, mins: mins, count: count, shards: shards} <- Noncer.all()
+      %{nonces: nonces, mins: mins, counts: counts, shards: shards} <- Noncer.all()
     ) do
       assert times == length(Map.keys(nonces))
-      assert 1 == length(Map.keys(count))
+      assert 1 == length(Map.keys(counts))
       assert 1 == length(Map.keys(shards))
       assert 1 == length(MapSet.to_list(mins))
 
-      assert MapSet.to_list(mins) == Map.keys(count)
+      assert MapSet.to_list(mins) == Map.keys(counts)
       assert MapSet.to_list(mins) == Map.keys(shards)
       assert MapSet.new(Map.keys(nonces)) == MapSet.new(hd(Map.values(shards)))
 
-      assert times == hd(Map.values(count))
+      assert times == hd(Map.values(counts))
     end
   end
 
