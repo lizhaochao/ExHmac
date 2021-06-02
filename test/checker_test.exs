@@ -54,12 +54,6 @@ defmodule CheckerTest do
     end
   end
 
-  ### check_nonce
-  describe "check_nonce/2" do
-    test "ok" do
-    end
-  end
-
   ###
   describe "raise error" do
     test "check_timestamp/4 error" do
@@ -74,15 +68,11 @@ defmodule CheckerTest do
       end)
     end
 
-    test "check_nonce/2 error" do
-      [
-        {1, []},
-        {123, %{}},
-        {"a1h801", []}
-      ]
-      |> Enum.each(fn {nonce, config} ->
+    test "check_nonce/1 error" do
+      [1, 1.1, %{}, [], true, {}, 1..2]
+      |> Enum.each(fn nonce ->
         assert_raise Error, fn ->
-          Checker.check_nonce(nonce, config)
+          Checker.check_nonce(nonce)
         end
       end)
     end

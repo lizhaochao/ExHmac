@@ -40,6 +40,16 @@ defmodule ExHmac.Util do
   def log_debug([_ | _] = term), do: Logger.debug(term)
   def log_warn(term) when is_bitstring(term), do: Logger.warn(term)
 
+  def to_minute(nil = ts, _precision), do: ts
+
+  def to_minute(ts, precision) do
+    case precision do
+      :millisecond -> ts / 1000 / 60
+      _second -> ts / 60
+    end
+    |> trunc()
+  end
+
   ###
   def to_atom_key(%_{} = map), do: map |> struct_to_map() |> to_atom_key()
   def to_atom_key(%{} = map), do: traverse_map(map)

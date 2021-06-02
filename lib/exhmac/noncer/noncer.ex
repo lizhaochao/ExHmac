@@ -1,13 +1,13 @@
 defmodule ExHmac.Noncer do
   @moduledoc false
 
-  alias ExHmac.{Config, Repo}
+  alias ExHmac.{Repo, Util}
 
   ###
-  def check(nonce, curr_ts, config) do
+  def check(nonce, curr_ts, ttl, precision) do
     nonce
     |> get_and_update_nonce(curr_ts)
-    |> do_check(curr_ts, config)
+    |> do_check(curr_ts, ttl, precision)
   end
 
   def get_and_update_nonce(nonce, curr_ts) do
@@ -23,40 +23,36 @@ defmodule ExHmac.Noncer do
     Repo.get(fun)
   end
 
-  def do_check(arrived_at, curr_ts, config) when is_integer(arrived_at) do
+  def do_check(arrived_at, curr_ts, ttl, precision) when is_integer(arrived_at) do
     curr_ts
-    |> expired(arrived_at, config)
+    |> expired(arrived_at, ttl, precision)
     |> case do
       :not_expired -> {arrived_at, :not_expired, :invalid_nonce}
       :expired -> {arrived_at, :expired, :ok}
     end
   end
 
-  def do_check(nil = _arrived_at, _curr_ts, _config), do: {nil, :not_exists, :ok}
+  def do_check(nil = _arrived_at, _curr_ts, _ttl, _precision), do: {nil, :not_exists, :ok}
 
-  def expired(curr_ts, arrived_at, config) do
-    with(
-      ttl <- Config.get_nonce_ttl(),
-      %{precision: precision} <- config,
-      diff <- curr_ts - arrived_at
-    ) do
-      precision
-      |> case do
-        :millisecond -> trunc(diff / 1000)
-        _second -> diff
-      end
-      |> Kernel.>=(ttl)
-      |> if(
-        do: :expired,
-        else: :not_expired
-      )
+  def expired(curr_ts, arrived_at, ttl, precision) do
+    diff = curr_ts - arrived_at
+
+    precision
+    |> case do
+      :millisecond -> trunc(diff / 1000)
+      _second -> diff
     end
+    |> Kernel.>=(ttl)
+    |> if(
+      do: :expired,
+      else: :not_expired
+    )
   end
 
   ###
-  def save_meta(raw_result, nonce, arrived_at, curr_ts, config) do
-    curr_min = to_minute(curr_ts, config)
-    arrived_at_min = to_minute(arrived_at, config)
+  def save_meta(raw_result, nonce, arrived_at, curr_ts, precision) do
+    curr_min = Util.to_minute(curr_ts, precision)
+    arrived_at_min = Util.to_minute(arrived_at, precision)
 
     fun = fn repo ->
       repo
@@ -135,18 +131,6 @@ defmodule ExHmac.Noncer do
   def in_same_shard(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
   def in_same_shard(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_shard
   def in_same_shard(_, _, _), do: :different_shards
-
-  def to_minute(nil = ts, _config), do: ts
-
-  def to_minute(ts, config) do
-    %{precision: precision} = config
-
-    case precision do
-      :millisecond -> ts / 1000 / 60
-      _second -> ts / 60
-    end
-    |> trunc()
-  end
 
   ###
   def all, do: Repo.get_all()

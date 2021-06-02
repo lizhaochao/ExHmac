@@ -20,14 +20,14 @@ defmodule ExHmac.Noncer.Server do
   def init(:ok), do: {:ok, nil}
 
   @impl true
-  def handle_call({nonce, curr_ts, config}, _from, state) do
-    result = Noncer.check(nonce, curr_ts, config)
+  def handle_call({nonce, curr_ts, ttl, precision}, _from, state) do
+    result = Noncer.check(nonce, curr_ts, ttl, precision)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, state) do
-    Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, config)
+  def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, precision}, state) do
+    Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, precision)
     {:noreply, state}
   end
 end

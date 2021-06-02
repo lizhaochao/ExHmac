@@ -11,8 +11,8 @@ defmodule NoncerTest do
     :ok
   end
 
-  @prec :millisecond
-  @config [] |> Config.get_config() |> Map.put(:precision, @prec)
+  @ttl Config.get_nonce_ttl()
+  @precision :millisecond
 
   describe "renew nonce arrived_at" do
     test "not exists -> not expired -> expired with same nonce" do
@@ -20,32 +20,19 @@ defmodule NoncerTest do
       nonce = "A1B2C3"
       # first
       curr_ts1 = get_curr_ts()
-      NoncerClient.check(nonce, curr_ts1, @config)
+      NoncerClient.check(nonce, curr_ts1, @ttl, @precision)
       # second
       curr_ts2 = curr_ts1 + (ttl_secs - 20) * 1000
-      NoncerClient.check(nonce, curr_ts2, @config)
+      NoncerClient.check(nonce, curr_ts2, @ttl, @precision)
       # third
       curr_ts3 = curr_ts2 + ttl_secs * 2 * 1000
-      NoncerClient.check(nonce, curr_ts3, @config)
+      NoncerClient.check(nonce, curr_ts3, @ttl, @precision)
 
       # await is not really work for this situation.
       # fn -> want_run_fun.() end |> Task.async() |> Task.await()
       # so just sleep a little milliseconds.
       Process.sleep(10)
 
-      ##  Repo SnapShoot
-      ##  %{
-      ##    meta: %{
-      ##      count: %{27_042_870 => 0, 27_042_885 => 0, 27_042_900 => 1},
-      ##      mins: #MapSet<[27042870, 27042885, 27042900]>,
-      ##      shards: %{
-      ##        27_042_870 => #MapSet<[]>,
-      ##        27_042_885 => #MapSet<[]>,
-      ##        27_042_900 => #MapSet<["A1B2C3"]>
-      ##      }
-      ##    },
-      ##    nonces: %{"A1B2C3" => 1_622_574_051_220}
-      ##  }
       %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Noncer.all()
       assert 1 == length(Map.keys(nonces))
       assert 1 == Enum.sum(Map.values(count))
@@ -59,7 +46,7 @@ defmodule NoncerTest do
   @tag :noncer
   @tag timeout: 120_000
   test "check_call/3" do
-    test_fun = fn n, curr_ts -> NoncerClient.check_call(n, curr_ts, @config) end
+    test_fun = fn n, curr_ts -> NoncerClient.check_call(n, curr_ts, @ttl, @precision) end
     run_n_times(test_fun)
     Noncer.all() |> Map.get(:meta)
   end
@@ -68,7 +55,7 @@ defmodule NoncerTest do
   @tag timeout: 120_000
   test "save_meta_cast/3" do
     test_fun = fn n, curr_ts ->
-      NoncerClient.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @config)
+      NoncerClient.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @precision)
     end
 
     run_n_times(test_fun)
@@ -90,7 +77,7 @@ defmodule NoncerTest do
     end
   end
 
-  def get_curr_ts, do: DateTime.utc_now() |> DateTime.to_unix(@prec)
+  def get_curr_ts, do: DateTime.utc_now() |> DateTime.to_unix(@precision)
 end
 
 defmodule NoncerWorkerTest do
@@ -99,7 +86,8 @@ defmodule NoncerWorkerTest do
   alias ExHmac.Config
   alias ExHmac.Noncer
 
-  @config Config.get_config([])
+  @ttl Config.get_nonce_ttl()
+  @precision Config.get_precision()
 
   describe "do_check/4" do
     test "ok - not exists" do
@@ -107,28 +95,27 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- nil
       ) do
-        assert {nil, :not_exists, :ok} == Noncer.do_check(arrived_at, curr_ts, @config)
+        assert {nil, :not_exists, :ok} == Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
       end
     end
 
     test "ok - expired" do
       with(
-        ttl <- Config.get_nonce_ttl(),
         curr_ts <- 1_622_474_344,
-        arrived_at <- curr_ts - ttl
+        arrived_at <- curr_ts - @ttl
       ) do
-        assert {arrived_at, :expired, :ok} == Noncer.do_check(arrived_at, curr_ts, @config)
+        assert {arrived_at, :expired, :ok} ==
+                 Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
       end
     end
 
     test "invalid nonce - not expired" do
       with(
-        ttl <- Config.get_nonce_ttl(),
         curr_ts <- 1_622_474_344,
-        arrived_at <- curr_ts - ttl + 10
+        arrived_at <- curr_ts - @ttl + 10
       ) do
         assert {arrived_at, :not_expired, :invalid_nonce} ==
-                 Noncer.do_check(arrived_at, curr_ts, @config)
+                 Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
       end
     end
   end

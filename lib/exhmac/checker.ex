@@ -10,7 +10,8 @@ defmodule ExHmac.Checker do
   ### Timestamp
   def check_timestamp(ts, config) when is_integer(ts) and ts > 0 and is_map(config) do
     with(
-      %{precision: precision, warn: warn} <- config,
+      %{warn: warn} <- config,
+      precision <- Config.get_precision(),
       timestamp_offset <- Config.get_timestamp_offset(),
       curr_ts <- Util.get_curr_ts(precision),
       _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
@@ -40,16 +41,18 @@ defmodule ExHmac.Checker do
   def do_warn_offset(_, _, _), do: :ignore
 
   ### Nonce
-  def check_nonce(nonce, config) when is_bitstring(nonce) and is_map(config) do
+  def check_nonce(nonce) when is_bitstring(nonce) do
     with(
       curr_ts <- Util.get_curr_ts(),
-      result <- NoncerClient.check(nonce, curr_ts, config)
+      ttl <- Config.get_nonce_ttl(),
+      precision <- Config.get_precision(),
+      result <- NoncerClient.check(nonce, curr_ts, ttl, precision)
     ) do
       result
     end
   end
 
-  def check_nonce(_, _), do: raise(Error, "check nonce error")
+  def check_nonce(_), do: raise(Error, "check nonce error")
 
   ###
   def require_function!(impl_m, f, a) do
