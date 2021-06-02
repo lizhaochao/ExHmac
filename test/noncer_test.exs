@@ -2,7 +2,8 @@ defmodule NoncerTest do
   use ExUnit.Case
 
   alias ExHmac.{Config, Noncer}
-  alias ExHmac.Noncer.Worker
+  alias ExHmac.Noncer
+  alias ExHmac.Noncer.Client, as: NoncerClient
   alias ExHmac.Repo
 
   setup_all do
@@ -19,13 +20,13 @@ defmodule NoncerTest do
       nonce = "A1B2C3"
       # first
       curr_ts1 = get_curr_ts()
-      Noncer.check(nonce, curr_ts1, @config)
+      NoncerClient.check(nonce, curr_ts1, @config)
       # second
       curr_ts2 = curr_ts1 + (ttl_secs - 20) * 1000
-      Noncer.check(nonce, curr_ts2, @config)
+      NoncerClient.check(nonce, curr_ts2, @config)
       # third
       curr_ts3 = curr_ts2 + ttl_secs * 2 * 1000
-      Noncer.check(nonce, curr_ts3, @config)
+      NoncerClient.check(nonce, curr_ts3, @config)
 
       # await is not really work for this situation.
       # fn -> want_run_fun.() end |> Task.async() |> Task.await()
@@ -45,7 +46,7 @@ defmodule NoncerTest do
       ##    },
       ##    nonces: %{"A1B2C3" => 1_622_574_051_220}
       ##  }
-      %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Worker.all()
+      %{nonces: nonces, meta: %{shards: shards, mins: mins, count: count}} = Noncer.all()
       assert 1 == length(Map.keys(nonces))
       assert 1 == Enum.sum(Map.values(count))
       assert 3 == length(MapSet.to_list(mins))
@@ -57,18 +58,21 @@ defmodule NoncerTest do
 
   @tag :noncer
   @tag timeout: 120_000
-  test "ExHmac.Noncer.check/3" do
-    test_fun = fn n, curr_ts -> Noncer.check(n, curr_ts, @config) end
+  test "check_call/3" do
+    test_fun = fn n, curr_ts -> NoncerClient.check_call(n, curr_ts, @config) end
     run_n_times(test_fun)
-    Worker.all() |> Map.get(:meta)
+    Noncer.all() |> Map.get(:meta)
   end
 
   @tag :noncer
   @tag timeout: 120_000
-  test "ExHmac.Noncer.save_meta_cast/3" do
-    test_fun = fn n, curr_ts -> Noncer.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @config) end
+  test "save_meta_cast/3" do
+    test_fun = fn n, curr_ts ->
+      NoncerClient.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @config)
+    end
+
     run_n_times(test_fun)
-    Worker.all() |> Map.get(:meta)
+    Noncer.all() |> Map.get(:meta)
   end
 
   ###
@@ -93,7 +97,7 @@ defmodule NoncerWorkerTest do
   use ExUnit.Case
 
   alias ExHmac.Config
-  alias ExHmac.Noncer.Worker
+  alias ExHmac.Noncer
 
   @config Config.get_config([])
 
@@ -103,7 +107,7 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- nil
       ) do
-        assert {nil, :not_exists, :ok} == Worker.do_check(arrived_at, curr_ts, @config)
+        assert {nil, :not_exists, :ok} == Noncer.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -113,7 +117,7 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- curr_ts - ttl
       ) do
-        assert {arrived_at, :expired, :ok} == Worker.do_check(arrived_at, curr_ts, @config)
+        assert {arrived_at, :expired, :ok} == Noncer.do_check(arrived_at, curr_ts, @config)
       end
     end
 
@@ -124,7 +128,7 @@ defmodule NoncerWorkerTest do
         arrived_at <- curr_ts - ttl + 10
       ) do
         assert {arrived_at, :not_expired, :invalid_nonce} ==
-                 Worker.do_check(arrived_at, curr_ts, @config)
+                 Noncer.do_check(arrived_at, curr_ts, @config)
       end
     end
   end

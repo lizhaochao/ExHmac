@@ -1,34 +1,6 @@
 defmodule ExHmac.Noncer do
   @moduledoc false
 
-  alias ExHmac.Noncer.Server
-
-  ### Client
-  def check(nonce, curr_ts, config) do
-    with(
-      {arrived_at, raw_result, result} <- check_call(nonce, curr_ts, config),
-      _ <- save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config)
-    ) do
-      result
-    end
-  end
-
-  def check_call(nonce, curr_ts, config) do
-    GenServer.call(Server, {nonce, curr_ts, config})
-  end
-
-  def save_meta_cast(raw_result, nonce, arrived_at, curr_ts, config) do
-    GenServer.cast(Server, {:save_meta, raw_result, nonce, arrived_at, curr_ts, config})
-  end
-
-  ###
-  def gen_nonce(len), do: gen_random(trunc(len / 2))
-  defp gen_random(bits), do: bits |> :crypto.strong_rand_bytes() |> Base.encode16()
-end
-
-defmodule ExHmac.Noncer.Worker do
-  @moduledoc false
-
   alias ExHmac.Repo
 
   def check(nonce, curr_ts, config) do
@@ -106,7 +78,6 @@ defmodule ExHmac.Noncer.Worker do
     end
   end
 
-  #
   def update_count(repo, curr_min, arrived_at_min, raw_result) do
     curr_min_count = get_in(repo, [:meta, :count, curr_min])
     curr_min_count = (curr_min_count && curr_min_count + 1) || 1
@@ -132,7 +103,6 @@ defmodule ExHmac.Noncer.Worker do
 
   def minus_one(repo, _, _), do: repo
 
-  #
   def update_shards(repo, curr_min, arrived_at_min, nonce, raw_result) do
     with(
       shard <- get_in(repo, [:meta, :shards, curr_min]),
@@ -160,7 +130,7 @@ defmodule ExHmac.Noncer.Worker do
 
   def delete_nonce_from_shard(repo, _, _, _), do: repo
 
-  #
+  ###
   def in_same_shard(_, _, raw_result) when raw_result not in [:not_expired, :expired], do: :error
   def in_same_shard(curr_min, arrived_at_min, _) when curr_min == arrived_at_min, do: :same_shard
   def in_same_shard(_, _, _), do: :different_shards
@@ -179,38 +149,8 @@ defmodule ExHmac.Noncer.Worker do
 
   ###
   def all, do: Repo.get_all()
-end
 
-defmodule ExHmac.Noncer.Server do
-  @moduledoc false
-
-  ### Use GenServer To Make Sure Operations Is Atomic.
-  use GenServer
-
-  alias ExHmac.Noncer.Worker
-
-  def start_link(opts) when is_list(opts) do
-    with(
-      impl_m <- __MODULE__,
-      repo_name <- impl_m,
-      name_opt <- [name: repo_name]
-    ) do
-      GenServer.start_link(impl_m, :ok, opts ++ name_opt)
-    end
-  end
-
-  @impl true
-  def init(:ok), do: {:ok, nil}
-
-  @impl true
-  def handle_call({nonce, curr_ts, config}, _from, state) do
-    result = Worker.check(nonce, curr_ts, config)
-    {:reply, result, state}
-  end
-
-  @impl true
-  def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, config}, state) do
-    Worker.save_meta(raw_result, nonce, arrived_at, curr_ts, config)
-    {:noreply, state}
-  end
+  ###
+  def gen_nonce(len), do: gen_random(trunc(len / 2))
+  defp gen_random(bits), do: bits |> :crypto.strong_rand_bytes() |> Base.encode16()
 end

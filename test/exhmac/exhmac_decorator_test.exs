@@ -40,10 +40,11 @@ defmodule ExHmacDecoratorTest do
   ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
   use ExUnit.Case
+
   import AuthCenter.Hmac
+
   alias ExHmac.TestHelper
-  alias ExHmac.Noncer.Worker, as: NoncerWorker
-  alias ExHmac.Repo
+  alias ExHmac.{Noncer, Repo}
 
   setup_all do
     Repo.reinit()
@@ -61,7 +62,7 @@ defmodule ExHmacDecoratorTest do
       tasks <- Enum.map(1..times, fn _ -> Task.async(fn -> start_request() end) end),
       timeout <- 10_000,
       _ <- Task.await_many(tasks, timeout),
-      %{nonces: nonces, mins: mins, count: count, shards: shards} <- NoncerWorker.all()
+      %{nonces: nonces, mins: mins, count: count, shards: shards} <- Noncer.all()
     ) do
       assert times == length(Map.keys(nonces))
       assert 1 == length(Map.keys(count))

@@ -1,7 +1,8 @@
 defmodule ExHmac.Checker do
   @moduledoc false
 
-  alias ExHmac.{Error, Noncer, Util}
+  alias ExHmac.{Error, Util}
+  alias ExHmac.Noncer.Client, as: NoncerClient
 
   @warn_text "your timestamp may be a millisecond precision."
   @warn_ratio 0.01
@@ -44,7 +45,7 @@ defmodule ExHmac.Checker do
   def check_nonce(nonce, config) when is_bitstring(nonce) and is_map(config) do
     with(
       curr_ts <- Util.get_curr_ts(),
-      result <- Noncer.check(nonce, curr_ts, config)
+      result <- NoncerClient.check(nonce, curr_ts, config)
     ) do
       result
     end
