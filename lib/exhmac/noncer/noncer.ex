@@ -4,10 +4,10 @@ defmodule ExHmac.Noncer do
   alias ExHmac.{Repo, Util}
 
   ###
-  def check(nonce, curr_ts, ttl, precision) do
+  def check(nonce, curr_ts, ttl_secs, precision) do
     nonce
     |> get_and_update_nonce(curr_ts)
-    |> do_check(curr_ts, ttl, precision)
+    |> do_check(curr_ts, ttl_secs, precision)
   end
 
   def get_and_update_nonce(nonce, curr_ts) do
@@ -23,18 +23,18 @@ defmodule ExHmac.Noncer do
     Repo.get(fun)
   end
 
-  def do_check(arrived_at, curr_ts, ttl, precision) when is_integer(arrived_at) do
+  def do_check(arrived_at, curr_ts, ttl_secs, precision) when is_integer(arrived_at) do
     curr_ts
-    |> expired(arrived_at, ttl, precision)
+    |> expired(arrived_at, ttl_secs, precision)
     |> case do
       :not_expired -> {arrived_at, :not_expired, :invalid_nonce}
       :expired -> {arrived_at, :expired, :ok}
     end
   end
 
-  def do_check(nil = _arrived_at, _curr_ts, _ttl, _precision), do: {nil, :not_exists, :ok}
+  def do_check(nil = _arrived_at, _curr_ts, _ttl_secs, _precision), do: {nil, :not_exists, :ok}
 
-  def expired(curr_ts, arrived_at, ttl, precision) do
+  def expired(curr_ts, arrived_at, ttl_secs, precision) do
     diff = curr_ts - arrived_at
 
     precision
@@ -42,7 +42,7 @@ defmodule ExHmac.Noncer do
       :millisecond -> trunc(diff / 1000)
       _second -> diff
     end
-    |> Kernel.>=(ttl)
+    |> Kernel.>=(ttl_secs)
     |> if(
       do: :expired,
       else: :not_expired

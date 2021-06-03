@@ -3,7 +3,6 @@ defmodule NoncerTest do
 
   alias ExHmac.{Config, Noncer}
   alias ExHmac.Noncer
-  alias ExHmac.Noncer.Client, as: NoncerClient
   alias ExHmac.Repo
 
   setup_all do
@@ -14,70 +13,35 @@ defmodule NoncerTest do
   @ttl Config.get_nonce_ttl_secs()
   @precision :millisecond
 
-  describe "renew nonce arrived_at" do
-    test "not exists -> not expired -> expired with same nonce" do
-      ttl_secs = Config.get_nonce_ttl_secs()
-      nonce = "A1B2C3"
-      # first
-      curr_ts1 = get_curr_ts()
-      NoncerClient.check(nonce, curr_ts1, @ttl, @precision)
-      # second
-      curr_ts2 = curr_ts1 + (ttl_secs - 20) * 1000
-      NoncerClient.check(nonce, curr_ts2, @ttl, @precision)
-      # third
-      curr_ts3 = curr_ts2 + ttl_secs * 2 * 1000
-      NoncerClient.check(nonce, curr_ts3, @ttl, @precision)
+  test "renew nonce arrived_at" do
+    nonce = "A1B2C3"
+    # 1
+    curr_ts1 = get_curr_ts(@precision)
+    assert :not_exists == check_sync(nonce, curr_ts1)
+    # 2
+    curr_ts2 = curr_ts1 + (@ttl - 1) * 1000
+    assert :not_expired == check_sync(nonce, curr_ts2)
+    # 3
+    curr_ts3 = curr_ts2 + (@ttl - 1) * 1000
+    assert :not_expired == check_sync(nonce, curr_ts3)
+    # 4
+    curr_ts4 = curr_ts3 + (@ttl + 1) * 1000
+    assert :expired == check_sync(nonce, curr_ts4)
 
-      # await is not really work for this situation.
-      # fn -> want_run_fun.() end |> Task.async() |> Task.await()
-      # so just sleep a little milliseconds.
-      Process.sleep(10)
-
-      %{nonces: nonces, meta: %{shards: shards, mins: mins, counts: counts}} = Noncer.all()
-      assert 1 == length(Map.keys(nonces))
-      assert 1 == Enum.sum(Map.values(counts))
-      assert 3 == length(MapSet.to_list(mins))
-
-      to_list_fum = fn shard -> MapSet.to_list(shard) end
-      assert 1 == length(List.flatten(Enum.map(Map.values(shards), to_list_fum)))
-    end
+    %{nonces: nonces, meta: %{shards: shards, mins: mins, counts: counts}} = Noncer.all()
+    assert 1 == length(Map.keys(nonces))
+    assert 1 == Enum.sum(Map.values(counts))
+    assert 3 == map_size(mins)
+    assert 1 == length(Enum.concat(Map.values(shards)))
   end
 
-  @tag :noncer
-  @tag timeout: 120_000
-  test "check_call/3" do
-    test_fun = fn n, curr_ts -> NoncerClient.check_call(n, curr_ts, @ttl, @precision) end
-    run_n_times(test_fun)
-    Noncer.all() |> Map.get(:meta)
+  def check_sync(nonce, curr_ts) do
+    {arrived_at, raw_result, _} = Noncer.check(nonce, curr_ts, @ttl, @precision)
+    Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, @precision)
+    raw_result
   end
 
-  @tag :noncer
-  @tag timeout: 120_000
-  test "save_meta_cast/3" do
-    test_fun = fn n, curr_ts ->
-      NoncerClient.save_meta_cast(:ok, n, curr_ts - 10, curr_ts, @precision)
-    end
-
-    run_n_times(test_fun)
-    Noncer.all() |> Map.get(:meta)
-  end
-
-  ###
-  def run_n_times(fun, times \\ 10_000, timeout \\ 30_000) do
-    with(
-      start_time <- get_curr_ts(),
-      curr_ts <- start_time,
-      tasks <- Enum.map(1..times, fn n -> Task.async(fn -> fun.(n, curr_ts) end) end),
-      _ <- Task.await_many(tasks, timeout),
-      end_time <- get_curr_ts(),
-      diff <- end_time - start_time,
-      expected_max_spent_milli <- 1000
-    ) do
-      assert diff < expected_max_spent_milli
-    end
-  end
-
-  def get_curr_ts, do: DateTime.utc_now() |> DateTime.to_unix(@precision)
+  def get_curr_ts(precision \\ :second), do: DateTime.utc_now() |> DateTime.to_unix(precision)
 end
 
 defmodule NoncerWorkerTest do
