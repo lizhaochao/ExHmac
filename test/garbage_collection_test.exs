@@ -18,8 +18,7 @@ defmodule GarbageCollectorTest do
     } = test_data()
 
     fn repo ->
-      mins = [min0, min1, min2, min3]
-
+      # GC don't care nonce's arrived_at.
       repo =
         put_in(repo, [:nonces], %{
           nonce0 => 1_622_573_000,
@@ -27,9 +26,6 @@ defmodule GarbageCollectorTest do
           nonce2 => 1_622_573_222,
           nonce3 => 1_622_573_333
         })
-
-      repo = put_in(repo, [:meta, :mins], MapSet.new(mins))
-      repo = put_in(repo, [:meta, :counts], %{min0 => 1, min1 => 1, min2 => 1, min3 => 1})
 
       repo =
         put_in(repo, [:meta, :shards], %{
@@ -39,6 +35,9 @@ defmodule GarbageCollectorTest do
           min3 => MapSet.new([nonce3])
         })
 
+      mins = [min0, min1, min2, min3]
+      repo = put_in(repo, [:meta, :mins], MapSet.new(mins))
+      repo = put_in(repo, [:meta, :counts], %{min0 => 1, min1 => 1, min2 => 1, min3 => 1})
       {nil, repo}
     end
     |> Repo.get()
@@ -47,8 +46,9 @@ defmodule GarbageCollectorTest do
       ttl_min <- 15,
       curr_min <- min2 + ttl_min + 1
     ) do
-      Enum.each(1..50, fn _ ->
+      Enum.each(1..3, fn _ ->
         assert :ok == GC.do_collect(curr_min, ttl_min)
+        Process.sleep(10)
         assert_collect_after()
       end)
     end
@@ -56,16 +56,12 @@ defmodule GarbageCollectorTest do
 
   ### Helper
   def test_data do
-    {min0, nonce0} = {27_042_870, "000000"}
-    {min1, nonce1} = {27_042_871, "AAA111"}
-    {min2, nonce2} = {27_042_872, "BBB222"}
-    {min3, nonce3} = {27_042_873, "CCC333"}
-
+    # {min, nonce}
     %{
-      0 => {min0, nonce0},
-      1 => {min1, nonce1},
-      2 => {min2, nonce2},
-      3 => {min3, nonce3}
+      0 => {27_042_870, "AAA000"},
+      1 => {27_042_871, "BBB111"},
+      2 => {27_042_872, "CCC222"},
+      3 => {27_042_873, "DDD333"}
     }
   end
 
