@@ -146,12 +146,12 @@ defmodule ExHmac.Use.Decorator do
 
   ###
   def fmt_resp(resp, config) do
-    with _ <- Util.log_debug(origin_resp: resp),
-         %{impl_m: impl_m} <- config,
-         {f, a} <- __ENV__.function,
-         true <- function_exported?(impl_m, f, a - 1),
-         resp = apply(impl_m, f, [resp]),
-         _ <- Util.log_debug(resp: resp) do
+    with(
+      %{impl_m: impl_m} <- config,
+      {f, a} <- __ENV__.function,
+      true <- function_exported?(impl_m, f, a - 1),
+      resp <- apply(impl_m, f, [resp])
+    ) do
       {:fmt, resp}
     else
       false -> {:default, resp}

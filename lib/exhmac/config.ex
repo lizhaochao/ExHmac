@@ -10,6 +10,8 @@ defmodule ExHmac.Config do
   @default_collect_interval_milli 60_000
   @default_search_mins_len 1
 
+  @default_gc_should_warn_count 20_000
+
   @sha1 [:sha]
   @sha2 [:sha512, :sha384, :sha256, :sha224]
   @sha3 [:sha3_512, :sha3_384, :sha3_256, :sha3_224]
@@ -19,6 +21,9 @@ defmodule ExHmac.Config do
   def hmac_hash_algs_prefix, do: "hmac_"
 
   def get_search_mins_len, do: @default_search_mins_len
+
+  def gc_should_warn_count,
+    do: Application.get_env(:exhmac, :gc_should_warn_count, @default_gc_should_warn_count)
 
   def get_collect_interval_milli,
     do: Application.get_env(:exhmac, :collect_interval_milli, @default_collect_interval_milli)

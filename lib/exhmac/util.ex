@@ -37,9 +37,6 @@ defmodule ExHmac.Util do
   def to_keyword(term) when is_list(term), do: term
   def to_keyword(term) when is_map(term), do: Enum.into(term, [])
 
-  def log_debug([_ | _] = term), do: Logger.debug(term)
-  def log_warn(term) when is_bitstring(term), do: Logger.warn(term)
-
   def to_minute(nil = ts, _precision), do: ts
 
   def to_minute(ts, precision) do
@@ -48,6 +45,10 @@ defmodule ExHmac.Util do
       _second -> ts / 60
     end
     |> trunc()
+  end
+
+  def log(level, [type | _] = content, log_color) do
+    Logger.log(level, fn -> content end, ansi_color: log_color.(level, type))
   end
 
   ###

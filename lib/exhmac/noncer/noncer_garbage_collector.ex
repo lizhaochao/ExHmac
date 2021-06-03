@@ -4,6 +4,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
   alias ExHmac.{Config, Repo, Util}
 
   @default_search_mins_len Config.get_search_mins_len()
+  @gc_should_warn_count Config.gc_should_warn_count()
 
   def collect do
     with(
@@ -89,16 +90,28 @@ defmodule ExHmac.Noncer.GarbageCollector do
     with(
       end_min <- curr_min - (ttl_min + 1),
       planned_mins <- for(min <- (end_min - (len - 1))..end_min, do: min),
-      _ <- Util.log_debug(stat: :gc, planned_mins: planned_mins, ttl_min: ttl_min)
+      log_content <- [gc: :info, planned_mins: planned_mins, ttl_min: ttl_min],
+      _ <- Util.log(:debug, log_content, &log_color/2)
     ) do
       planned_mins
     end
   end
 
+  ###
   def gc_log(repo, count, [_ | _] = mins, [_ | _] = nonces) when count > 0 do
-    Util.log_debug(stat: :gc, count: count, mins: mins, nonces: nonces)
-    repo
+    with(
+      log_content <- [gc: :stat, count: count, mins: mins, nonces: nonces],
+      log_level <- if(count > @gc_should_warn_count, do: :warn, else: :debug),
+      _ <- Util.log(log_level, log_content, &log_color/2)
+    ) do
+      repo
+    end
   end
 
   def gc_log(repo, _other_count, _other_mins, _other_nonces), do: repo
+
+  def log_color(:debug, {:gc, :info}), do: :white
+  def log_color(:debug, {:gc, :stat}), do: :yellow
+  def log_color(:warn, {:gc, :stat}), do: :red
+  def log_color(_, _), do: :cyan
 end

@@ -9,14 +9,16 @@ defmodule ExHmac.Signer do
   def make_sign_string(args, access_key, secret_key, config)
       when is_list(args) and is_bitstring(access_key) and is_bitstring(secret_key) and
              is_map(config) do
-    with maker <- do_make_sign_string(args, access_key, secret_key),
-         %{
-           access_key_name: access_key_name,
-           secret_key_name: secret_key_name,
-           signature_name: signature_name
-         } <- config,
-         sign_string <- maker.(signature_name, access_key_name, secret_key_name),
-         _ <- Util.log_debug(sign_string: sign_string) do
+    with(
+      maker <- do_make_sign_string(args, access_key, secret_key),
+      %{
+        access_key_name: access_key_name,
+        secret_key_name: secret_key_name,
+        signature_name: signature_name
+      } <- config,
+      sign_string <- maker.(signature_name, access_key_name, secret_key_name),
+      _ <- Util.log(:debug, [sign_string: sign_string], &log_color/2)
+    ) do
       sign_string
     end
   end
@@ -66,9 +68,11 @@ defmodule ExHmac.Signer do
   def do_sign(_, _, _), do: raise(Error, "do sign error")
 
   def do_sign_log(hash_result, alg, access_key) do
-    with log <- [alg: alg, hash_result: hash_result],
-         extra <- (access_key && [access_key: access_key]) || [] do
-      Util.log_debug(log ++ extra)
+    with(
+      log <- [alg: alg, hash_result: hash_result],
+      extra <- (access_key && [access_key: access_key]) || []
+    ) do
+      Util.log(:debug, extra ++ log, &log_color/2)
     end
   end
 
@@ -77,4 +81,9 @@ defmodule ExHmac.Signer do
   def hash(term, alg, access_key), do: hex_string(:crypto.mac(:hmac, alg, access_key, term))
 
   defp hex_string(binary), do: Base.encode16(binary, case: :lower)
+
+  ###
+  def log_color(:debug, {:sign_string, _}), do: :green
+  def log_color(:debug, {:access_key, _}), do: :magenta
+  def log_color(_, _), do: :cyan
 end
