@@ -9,17 +9,24 @@ defmodule ExHmac.Signer do
   def make_sign_string(args, access_key, secret_key, config)
       when is_list(args) and is_bitstring(access_key) and is_bitstring(secret_key) and
              is_map(config) do
+    %{
+      access_key_name: access_key_name,
+      secret_key_name: secret_key_name,
+      signature_name: signature_name,
+      impl_m: impl_m
+    } = config
+
+    {f, a} = __ENV__.function
+
     with(
+      false <- function_exported?(impl_m, f, a - 1),
       maker <- do_make_sign_string(args, access_key, secret_key),
-      %{
-        access_key_name: access_key_name,
-        secret_key_name: secret_key_name,
-        signature_name: signature_name
-      } <- config,
       sign_string <- maker.(signature_name, access_key_name, secret_key_name),
       _ <- Util.log(:debug, [sign_string: sign_string], &log_color/2)
     ) do
       sign_string
+    else
+      true -> apply(impl_m, f, [args, access_key, secret_key])
     end
   end
 

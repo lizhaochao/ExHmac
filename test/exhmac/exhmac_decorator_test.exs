@@ -12,6 +12,24 @@ defmodule AuthCenter.Hmac do
     TestHelper.get_test_secret_key()
   end
 
+  def make_sign_string(args, access_key, secret_key) do
+    to_json_string = fn term ->
+      case term do
+        term when is_bitstring(term) -> term
+        term when is_atom(term) -> Atom.to_string(term)
+        term -> term |> Poison.encode() |> elem(1)
+      end
+    end
+
+    args
+    |> Keyword.drop([:signature])
+    |> Keyword.put(:access_key, access_key)
+    |> Keyword.put(:secret_key, secret_key)
+    |> Enum.sort()
+    |> Enum.map(fn {k, v} -> "#{k}=#{to_json_string.(v)}" end)
+    |> Enum.join("&")
+  end
+
   def fmt_resp(resp) do
     case resp do
       [username, passwd] -> %{username: username, passwd: passwd}
