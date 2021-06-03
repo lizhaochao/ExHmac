@@ -68,14 +68,21 @@ defmodule GarbageCollectorTest do
   def assert_collect_after do
     %{
       0 => {min0, nonce0},
+      1 => {min1, nonce1},
       3 => {min3, nonce3}
     } = test_data()
 
     %{meta: %{counts: counts, mins: mins, shards: shards}, nonces: nonces} = Noncer.all()
 
-    assert %{min0 => 1, min3 => 1} == counts
-    assert MapSet.new([min0, min3]) == mins
-    assert %{min0 => MapSet.new([nonce0]), min3 => MapSet.new([nonce3])} == shards
-    assert [nonce0, nonce3] == Map.keys(nonces)
+    assert %{min0 => 1, min1 => 1, min3 => 1} == counts
+    assert MapSet.new([min0, min1, min3]) == mins
+
+    assert %{
+             min0 => MapSet.new([nonce0]),
+             min1 => MapSet.new([nonce1]),
+             min3 => MapSet.new([nonce3])
+           } == shards
+
+    assert [nonce0, nonce1, nonce3] == Map.keys(nonces)
   end
 end

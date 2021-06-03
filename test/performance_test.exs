@@ -32,7 +32,7 @@ defmodule PerformanceTest do
   @tag :performance
   test "collect/0" do
     curr_ts = get_curr_ts(@precision)
-    records = 10000
+    records = 10_000
 
     1..records
     |> Enum.each(fn n ->

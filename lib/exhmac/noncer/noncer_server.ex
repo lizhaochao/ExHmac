@@ -4,7 +4,10 @@ defmodule ExHmac.Noncer.Server do
   ### Use GenServer To Make Sure Operations Is Atomic.
   use GenServer
 
-  alias ExHmac.Noncer
+  alias ExHmac.{Config, Noncer}
+  alias ExHmac.Noncer.GarbageCollector, as: GC
+
+  @collect_interval_milli Config.get_collect_interval_milli()
 
   def start_link(opts) when is_list(opts) do
     with(
@@ -17,7 +20,23 @@ defmodule ExHmac.Noncer.Server do
   end
 
   @impl true
-  def init(:ok), do: {:ok, nil}
+  def init(:ok) do
+    gc_timer_fire()
+    {:ok, nil}
+  end
+
+  @impl true
+  def handle_info(:collect, state) do
+    with(
+      _ <- GC.collect(),
+      _ <- gc_timer_fire()
+    ) do
+      {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info(_, state), do: {:ok, state}
 
   @impl true
   def handle_call({nonce, curr_ts, ttl, precision}, _from, state) do
@@ -29,5 +48,9 @@ defmodule ExHmac.Noncer.Server do
   def handle_cast({:save_meta, raw_result, nonce, arrived_at, curr_ts, precision}, state) do
     Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, precision)
     {:noreply, state}
+  end
+
+  def gc_timer_fire do
+    Process.send_after(self(), :collect, @collect_interval_milli)
   end
 end

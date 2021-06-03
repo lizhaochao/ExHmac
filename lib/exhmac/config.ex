@@ -7,6 +7,8 @@ defmodule ExHmac.Config do
   @default_nonce_ttl_secs 900
   @default_nonce_len 6
   @default_precision :second
+  @default_collect_interval_milli 60_000
+  @default_search_mins_len 1
 
   @sha1 [:sha]
   @sha2 [:sha512, :sha384, :sha256, :sha224]
@@ -15,6 +17,11 @@ defmodule ExHmac.Config do
   @compatibility_only_hash [:md5]
 
   def hmac_hash_algs_prefix, do: "hmac_"
+
+  def get_search_mins_len, do: @default_search_mins_len
+
+  def get_collect_interval_milli,
+    do: Application.get_env(:exhmac, :collect_interval_milli, @default_collect_interval_milli)
 
   def get_nonce_ttl_secs,
     do: Application.get_env(:exhmac, :nonce_ttl_secs, @default_nonce_ttl_secs)

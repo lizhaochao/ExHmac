@@ -3,7 +3,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
 
   alias ExHmac.{Config, Repo, Util}
 
-  @default_search_mins_len 2
+  @default_search_mins_len Config.get_search_mins_len()
 
   def collect do
     with(
@@ -37,11 +37,13 @@ defmodule ExHmac.Noncer.GarbageCollector do
 
   def get_garbage(planned_mins, mins, shards, counts) do
     with(
-      garbage_mins <- Enum.filter(planned_mins, fn planned_min -> planned_min in mins end),
+      [_ | _] = garbage_mins <- Enum.filter(planned_mins, fn min -> min in mins end),
       garbage_nonces <- shards |> Map.take(garbage_mins) |> Map.values() |> Enum.concat(),
       garbage_count <- counts |> Map.take(garbage_mins) |> Map.values() |> Enum.sum()
     ) do
       {garbage_nonces, garbage_mins, garbage_count}
+    else
+      [] = _garbage_mins -> {[], [], 0}
     end
   end
 
@@ -84,12 +86,19 @@ defmodule ExHmac.Noncer.GarbageCollector do
 
   #
   def make_planned_mins(curr_min, ttl_min, len) do
-    end_min = curr_min - (ttl_min + 1)
-    for(min <- (end_min - (len - 1))..end_min, do: min)
+    with(
+      end_min <- curr_min - (ttl_min + 1),
+      planned_mins <- for(min <- (end_min - (len - 1))..end_min, do: min),
+      _ <- Util.log_debug(stat: :gc, planned_mins: planned_mins, ttl_min: ttl_min)
+    ) do
+      planned_mins
+    end
   end
 
-  def gc_log(repo, count, mins, nonces) do
+  def gc_log(repo, count, [_ | _] = mins, [_ | _] = nonces) when count > 0 do
     Util.log_debug(stat: :gc, count: count, mins: mins, nonces: nonces)
     repo
   end
+
+  def gc_log(repo, _other_count, _other_mins, _other_nonces), do: repo
 end
