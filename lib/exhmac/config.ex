@@ -1,7 +1,5 @@
 defmodule ExHmac.Config do
-  @moduledoc """
-  all configs' default unit is second.
-  """
+  @moduledoc false
 
   @default_timestamp_offset_secs 900
   @default_nonce_ttl_secs 900
