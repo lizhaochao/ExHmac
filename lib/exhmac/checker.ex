@@ -41,18 +41,25 @@ defmodule ExHmac.Checker do
   def do_warn_offset(_, _, _), do: :ignore
 
   ### Nonce
-  def check_nonce(nonce) when is_bitstring(nonce) do
+  def check_nonce(nonce, %{} = config) when is_bitstring(nonce) do
     with(
+      %{impl_m: impl_m} <- config,
+      {f, _a} <- __ENV__.function,
       curr_ts <- Util.get_curr_ts(),
-      ttl <- Config.get_nonce_ttl_secs(),
+      nonce_ttl_secs <- Config.get_nonce_ttl_secs(),
       precision <- Config.get_precision(),
-      result <- NoncerClient.check(nonce, curr_ts, ttl, precision)
+      disable_noncer <- Config.get_disable_noncer(),
+      args <- [nonce, curr_ts, nonce_ttl_secs, precision]
     ) do
-      result
+      cond do
+        function_exported?(impl_m, f, 4) -> apply(impl_m, f, args)
+        disable_noncer -> :ok
+        true -> apply(NoncerClient, :check, args)
+      end
     end
   end
 
-  def check_nonce(_), do: raise(Error, "check nonce error")
+  def check_nonce(_, _), do: raise(Error, "check nonce error")
 
   ###
   def require_function!(impl_m, f, a) do

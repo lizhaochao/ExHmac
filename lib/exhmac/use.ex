@@ -177,7 +177,7 @@ defmodule ExHmac.Use.Helper do
   def check_nonce(args, config) do
     with %{nonce_name: nonce_name} <- config,
          {:ok, nonce} <- Keyword.fetch(args, nonce_name) do
-      Checker.check_nonce(nonce)
+      Checker.check_nonce(nonce, config)
     else
       :error -> :not_found_nonce
       err -> err

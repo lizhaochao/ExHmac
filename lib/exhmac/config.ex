@@ -5,10 +5,11 @@ defmodule ExHmac.Config do
   @default_nonce_ttl_secs 900
   @default_nonce_len 6
   @default_precision :second
+
   @default_collect_interval_milli 60_000
   @default_search_mins_len 1
-
   @default_gc_should_warn_count 20_000
+  @default_disable_noncer false
 
   @sha1 [:sha]
   @sha2 [:sha512, :sha384, :sha256, :sha224]
@@ -20,7 +21,10 @@ defmodule ExHmac.Config do
 
   def get_search_mins_len, do: @default_search_mins_len
 
-  def gc_should_warn_count,
+  def get_disable_noncer,
+    do: Application.get_env(:exhmac, :disable_noncer, @default_disable_noncer)
+
+  def get_gc_should_warn_count,
     do: Application.get_env(:exhmac, :gc_should_warn_count, @default_gc_should_warn_count)
 
   def get_collect_interval_milli,

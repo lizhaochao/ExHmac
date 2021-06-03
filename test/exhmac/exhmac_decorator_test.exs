@@ -6,10 +6,26 @@ defmodule AuthCenter.Hmac do
     get_secret_key_function_name: :get_secret_by_key
 
   alias ExHmac.TestHelper
+  alias ExHmac.Repo
 
   def get_secret_by_key(access_key) do
     {access_key}
     TestHelper.get_test_secret_key()
+  end
+
+  def check_nonce(nonce, curr_ts, nonce_ttl_secs, precision) do
+    # clean unused warnings
+    {nonce, curr_ts, nonce_ttl_secs, precision}
+
+    arrived_at =
+      fn repo ->
+        value = Map.get(repo, nonce)
+        repo = Map.put(repo, nonce, 0)
+        {value, repo}
+      end
+      |> Repo.get()
+
+    if is_nil(arrived_at), do: :ok, else: :invalid_nonce
   end
 
   def make_sign_string(args, access_key, secret_key) do

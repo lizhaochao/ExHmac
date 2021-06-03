@@ -4,7 +4,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
   alias ExHmac.{Config, Repo, Util}
 
   @default_search_mins_len Config.get_search_mins_len()
-  @gc_should_warn_count Config.gc_should_warn_count()
+  @gc_should_warn_count Config.get_gc_should_warn_count()
 
   def collect do
     with(
