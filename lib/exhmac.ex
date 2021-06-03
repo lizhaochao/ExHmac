@@ -9,3 +9,13 @@ defmodule ExHmac do
     end
   end
 end
+
+defmodule ExHmac.Defhmac do
+  @moduledoc false
+
+  defmacro __using__(opts) do
+    quote do
+      use ExHmac.Use.Defhmac, unquote(opts)
+    end
+  end
+end
