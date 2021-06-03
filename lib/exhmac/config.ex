@@ -3,8 +3,8 @@ defmodule ExHmac.Config do
   all configs' default unit is second.
   """
 
-  @default_timestamp_offset 900
-  @default_nonce_ttl 900
+  @default_timestamp_offset_secs 900
+  @default_nonce_ttl_secs 900
   @default_nonce_len 6
   @default_precision :second
 
@@ -17,10 +17,10 @@ defmodule ExHmac.Config do
   def hmac_hash_algs_prefix, do: "hmac_"
 
   def get_nonce_ttl_secs,
-    do: Application.get_env(:exhmac, :nonce_ttl, @default_nonce_ttl)
+    do: Application.get_env(:exhmac, :nonce_ttl_secs, @default_nonce_ttl_secs)
 
-  def get_timestamp_offset,
-    do: Application.get_env(:exhmac, :timestamp_offset, @default_timestamp_offset)
+  def get_timestamp_offset_secs,
+    do: Application.get_env(:exhmac, :timestamp_offset_secs, @default_timestamp_offset_secs)
 
   def get_precision,
     do: Application.get_env(:exhmac, :precision, @default_precision)

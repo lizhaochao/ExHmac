@@ -12,10 +12,10 @@ defmodule ExHmac.Checker do
     with(
       %{warn: warn} <- config,
       precision <- Config.get_precision(),
-      timestamp_offset <- Config.get_timestamp_offset(),
+      timestamp_offset_secs <- Config.get_timestamp_offset_secs(),
       curr_ts <- Util.get_curr_ts(precision),
       _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
-      offset <- get_offset(precision, timestamp_offset)
+      offset <- get_offset(precision, timestamp_offset_secs)
     ) do
       do_check_timestamp(curr_ts, ts, offset)
     end

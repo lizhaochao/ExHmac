@@ -1,7 +1,7 @@
 use Mix.Config
 
-config :exhmac, :nonce_ttl, 900
-config :exhmac, :timestamp_offset, 900
+config :exhmac, :nonce_ttl_secs, 900
+config :exhmac, :timestamp_offset_secs, 900
 
 config :logger, :console,
   format: "[$level]$message | $metadata\n",
