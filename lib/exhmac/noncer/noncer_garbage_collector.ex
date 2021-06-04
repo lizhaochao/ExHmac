@@ -4,7 +4,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
   alias ExHmac.{Config, Repo, Util}
 
   @default_search_mins_len Config.get_search_mins_len()
-  @gc_should_warn_count Config.get_gc_should_warn_count()
+  @gc_warn_count Config.get_gc_warn_count()
 
   def collect do
     with(
@@ -101,7 +101,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
   def gc_log(repo, count, [_ | _] = mins, [_ | _] = nonces) when count > 0 do
     with(
       content <- [gc: :stat, count: count, mins: mins, nonces: nonces],
-      level <- if(count > @gc_should_warn_count, do: :warn, else: :debug),
+      level <- if(count > @gc_warn_count, do: :warn, else: :debug),
       _ <- Util.log(level, content, &log_color/2)
     ) do
       repo

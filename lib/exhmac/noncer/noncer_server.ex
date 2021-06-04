@@ -7,7 +7,7 @@ defmodule ExHmac.Noncer.Server do
   alias ExHmac.{Config, Noncer}
   alias ExHmac.Noncer.GarbageCollector, as: GC
 
-  @collect_interval_milli Config.get_collect_interval_milli()
+  @gc_interval_milli Config.get_gc_interval_milli()
 
   def start_link(opts) when is_list(opts) do
     with(
@@ -51,6 +51,6 @@ defmodule ExHmac.Noncer.Server do
   end
 
   def gc_timer_fire do
-    Process.send_after(self(), :collect, @collect_interval_milli)
+    Process.send_after(self(), :collect, @gc_interval_milli)
   end
 end

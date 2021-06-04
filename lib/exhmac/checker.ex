@@ -66,7 +66,7 @@ defmodule ExHmac.Checker do
     if function_exported?(impl_m, f, a) do
       :ignore
     else
-      raise Error, "!!! not implement #{to_string(f)}/#{a} function !!!"
+      raise Error, "!!! not implement #{to_string(impl_m)}.#{to_string(f)}/#{a} function !!!"
     end
   end
 

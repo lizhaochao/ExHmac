@@ -90,7 +90,6 @@ defmodule ExHmac.Use.Helper do
     |> append_hmac(config, access_key, secret_key)
   end
 
-  #
   def append_hmac(resp, config, access_key, secret_key) do
     with args <- make_resp_args(resp, config),
          signature <- sign(args, access_key, secret_key, config),
@@ -126,6 +125,95 @@ defmodule ExHmac.Use.Helper do
     case resp do
       resp when is_atom(resp) -> resp_fail_data_name
       _resp -> resp_succ_data_name
+    end
+  end
+
+  ###
+  def pre_check(config) do
+    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
+    Checker.require_function!(impl_m, get_secret_key_function_name, 1)
+  end
+
+  def make_arg_names(args_expr) do
+    Enum.map(args_expr, fn {name, _, _} ->
+      name
+      |> to_string()
+      |> case do
+        "_" <> _rest = str_name -> String.slice(str_name, 1, String.length(str_name) - 1)
+        str_name -> str_name
+      end
+      |> String.to_atom()
+    end)
+  end
+
+  def make_args(arg_names, arg_values), do: do_make_args(arg_names, arg_values, [])
+
+  def do_make_args([], [], args), do: args
+
+  def do_make_args([name | rest_names], [value | rest_values], args) do
+    do_make_args(rest_names, rest_values, [{name, value} | args])
+  end
+
+  ###
+  def do_check_hmac(args, exec_block, config)
+      when is_list(args) and is_function(exec_block) do
+    with access_key when is_bitstring(access_key) <- get_access_key(args, config),
+         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
+         resp <- do_check_hmac(args, access_key, secret_key, exec_block, config),
+         resp <- fmt_resp(resp, config) do
+      make_resp(resp, config, access_key, secret_key)
+    else
+      err_without_hmac -> err_without_hmac |> fmt_resp(config) |> make_resp(config)
+    end
+  end
+
+  def do_check_hmac(args, access_key, secret_key, exec_block, config) do
+    with :ok <- check_timestamp(args, config),
+         :ok <- check_nonce(args, config),
+         :ok <- check_signature(args, access_key, secret_key, config) do
+      exec_block.()
+    else
+      err -> err
+    end
+  end
+
+  ###
+  def get_access_key(args, config) do
+    %{access_key_name: access_key_name} = config
+
+    args
+    |> Keyword.fetch(access_key_name)
+    |> case do
+      :error -> :not_found_access_key
+      {:ok, access_key} when is_bitstring(access_key) and access_key != "" -> access_key
+      _access_key -> :access_key_error
+    end
+  end
+
+  def get_secret_key(access_key, config) do
+    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
+
+    impl_m
+    |> apply(get_secret_key_function_name, [access_key])
+    |> case do
+      secret_key when is_bitstring(secret_key) -> secret_key
+      secret_key when is_nil(secret_key) or secret_key == "" -> :access_key_error
+      err when is_atom(err) -> err
+      _ -> :get_secret_key_error
+    end
+  end
+
+  ###
+  def fmt_resp(resp, config) do
+    with(
+      %{impl_m: impl_m} <- config,
+      {f, a} <- __ENV__.function,
+      true <- function_exported?(impl_m, f, a - 1),
+      resp <- apply(impl_m, f, [resp])
+    ) do
+      {:fmt, resp}
+    else
+      false -> {:default, resp}
     end
   end
 end
