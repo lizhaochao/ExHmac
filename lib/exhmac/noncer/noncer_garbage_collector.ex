@@ -24,7 +24,7 @@ defmodule ExHmac.Noncer.GarbageCollector do
         {gc_nonces, gc_mins, gc_count} <- get_garbage(planned_mins, mins, shards, counts)
       ) do
         repo
-        |> collect_nonces(gc_nonces)
+        |> drop_nonces(gc_nonces)
         |> update_mins(mins, gc_mins)
         |> update_shards(shards, gc_mins)
         |> update_counts(counts, gc_mins)
@@ -49,13 +49,13 @@ defmodule ExHmac.Noncer.GarbageCollector do
   end
 
   #
-  def collect_nonces(repo, [_ | _] = garbage_nonces) do
+  def drop_nonces(repo, [_ | _] = garbage_nonces) do
     nonces = get_in(repo, [:nonces])
     new_nonces = Map.drop(nonces, garbage_nonces)
     put_in(repo, [:nonces], new_nonces)
   end
 
-  def collect_nonces(repo, _other), do: repo
+  def drop_nonces(repo, _other), do: repo
 
   #
   def update_mins(repo, mins, [_ | _] = garbage_mins) do
@@ -100,9 +100,9 @@ defmodule ExHmac.Noncer.GarbageCollector do
   ###
   def gc_log(repo, count, [_ | _] = mins, [_ | _] = nonces) when count > 0 do
     with(
-      log_content <- [gc: :stat, count: count, mins: mins, nonces: nonces],
-      log_level <- if(count > @gc_should_warn_count, do: :warn, else: :debug),
-      _ <- Util.log(log_level, log_content, &log_color/2)
+      content <- [gc: :stat, count: count, mins: mins, nonces: nonces],
+      level <- if(count > @gc_should_warn_count, do: :warn, else: :debug),
+      _ <- Util.log(level, content, &log_color/2)
     ) do
       repo
     end
