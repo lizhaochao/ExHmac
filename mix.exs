@@ -6,7 +6,7 @@ defmodule ExHmac.MixProject do
   @gitee_repo_url "https://gitee.com/lizhaochao/exhmac"
   @github_repo_url "https://github.com/lizhaochao/exhmac"
 
-  @version "0.2.0"
+  @version "0.3.0"
 
   def project do
     [
