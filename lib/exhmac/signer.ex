@@ -12,21 +12,15 @@ defmodule ExHmac.Signer do
     %{
       access_key_name: access_key_name,
       secret_key_name: secret_key_name,
-      signature_name: signature_name,
-      impl_m: impl_m
+      signature_name: signature_name
     } = config
 
-    {f, a} = __ENV__.function
-
     with(
-      false <- function_exported?(impl_m, f, a - 1),
       maker <- do_make_sign_string(args, access_key, secret_key),
       sign_string <- maker.(signature_name, access_key_name, secret_key_name),
       _ <- Util.log(:debug, [sign_string: sign_string], &log_color/2)
     ) do
       sign_string
-    else
-      true -> apply(impl_m, f, [args, access_key, secret_key])
     end
   end
 
@@ -57,22 +51,25 @@ defmodule ExHmac.Signer do
   end
 
   ###
-  def do_sign(sign_string, alg, access_key \\ nil)
-
-  def do_sign(sign_string, alg, access_key)
+  def do_sign(sign_string, alg, {contain_hmac?, access_key}, encode)
       when is_bitstring(sign_string) and alg in @support_hash_algs and
-             (is_nil(access_key) or is_bitstring(access_key)) do
-    with hash_result <- hash(sign_string, alg, access_key),
-         _ <- do_sign_log(hash_result, alg, access_key) do
+             (is_nil(access_key) or is_bitstring(access_key)) and
+             (is_nil(encode) or is_function(encode)) do
+    with(
+      encode <- encode || (&hex_string/1),
+      access_key <- (contain_hmac? && access_key) || nil,
+      hash_result <- hash(sign_string, alg, access_key, encode),
+      _ <- do_sign_log(hash_result, alg, access_key)
+    ) do
       hash_result
     end
   end
 
-  def do_sign(_sign_string, alg, _access_key) when alg not in @support_hash_algs do
+  def do_sign(_sign_string, alg, _access_key, _encode) when alg not in @support_hash_algs do
     raise Error, "not support hash alg: #{inspect(alg)}"
   end
 
-  def do_sign(_, _, _), do: raise(Error, "do sign error")
+  def do_sign(_, _, _, _), do: raise(Error, "do sign error")
 
   def do_sign_log(hash_result, alg, access_key) do
     with(
@@ -83,11 +80,10 @@ defmodule ExHmac.Signer do
     end
   end
 
-  def hash(term, alg, access_key \\ nil)
-  def hash(term, alg, nil = _access_key), do: hex_string(:crypto.hash(alg, term))
-  def hash(term, alg, access_key), do: hex_string(:crypto.mac(:hmac, alg, access_key, term))
+  def hash(term, alg, nil = _access_key, encode), do: encode.(:crypto.hash(alg, term))
+  def hash(term, alg, access_key, encode), do: encode.(:crypto.mac(:hmac, alg, access_key, term))
 
-  defp hex_string(binary), do: Base.encode16(binary, case: :lower)
+  def hex_string(binary), do: Base.encode16(binary, case: :lower)
 
   ###
   def log_color(:debug, {:sign_string, _}), do: :green

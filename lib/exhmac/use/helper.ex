@@ -27,7 +27,7 @@ defmodule ExHmac.Use.Helper do
     with %{signature_name: signature_name} <- config,
          {signature, args} when not is_nil(signature) <- Keyword.pop(args, signature_name),
          my_signature <- sign(args, access_key, secret_key, config),
-         true <- signature == my_signature do
+         true <- String.downcase(signature) == String.downcase(my_signature) do
       :ok
     else
       _ -> :signature_error
@@ -36,18 +36,35 @@ defmodule ExHmac.Use.Helper do
 
   ###
   def sign(args, access_key, secret_key, config) do
-    with %{hash_alg: hash_alg} <- config,
-         sign_string <- Signer.make_sign_string(args, access_key, secret_key, config) do
-      do_sign(hash_alg, sign_string, access_key)
+    with(
+      %{
+        impl_m: impl_m,
+        make_sign_string_fun_name: make_sign_string_fun_name
+      } <- config,
+      true <- function_exported?(impl_m, make_sign_string_fun_name, 3)
+    ) do
+      apply(impl_m, make_sign_string_fun_name, [args, access_key, secret_key])
+    else
+      false -> Signer.make_sign_string(args, access_key, secret_key, config)
     end
+    |> do_sign(access_key, config)
   end
 
-  def do_sign(hash_alg, sign_string, access_key) do
-    with true <- Util.contain_hmac?(hash_alg),
-         hash_alg <- Util.prune_hash_alg(hash_alg) do
-      Signer.do_sign(sign_string, hash_alg, access_key)
-    else
-      false -> Signer.do_sign(sign_string, hash_alg)
+  def do_sign(sign_string, access_key, config) do
+    %{
+      impl_m: impl_m,
+      hash_alg: hash_alg,
+      encode_hash_result_fun_name: encode_hash_result_fun_name
+    } = config
+
+    with(
+      contain_hmac? <- Util.contain_hmac?(hash_alg),
+      hash_alg <- Util.prune_hash_alg(hash_alg),
+      exported_encode? <- function_exported?(impl_m, encode_hash_result_fun_name, 1),
+      encode <- fn hash_result -> apply(impl_m, encode_hash_result_fun_name, [hash_result]) end,
+      encode <- (exported_encode? && encode) || nil
+    ) do
+      Signer.do_sign(sign_string, hash_alg, {contain_hmac?, access_key}, encode)
     end
   end
 
@@ -130,8 +147,8 @@ defmodule ExHmac.Use.Helper do
 
   ###
   def pre_check(config) do
-    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
-    Checker.require_function!(impl_m, get_secret_key_function_name, 1)
+    %{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
+    Checker.require_function!(impl_m, get_secret_key_fun_name, 1)
   end
 
   def make_arg_names(args_expr) do
@@ -191,10 +208,10 @@ defmodule ExHmac.Use.Helper do
   end
 
   def get_secret_key(access_key, config) do
-    %{impl_m: impl_m, get_secret_key_function_name: get_secret_key_function_name} = config
+    %{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
 
     impl_m
-    |> apply(get_secret_key_function_name, [access_key])
+    |> apply(get_secret_key_fun_name, [access_key])
     |> case do
       secret_key when is_bitstring(secret_key) -> secret_key
       secret_key when is_nil(secret_key) or secret_key == "" -> :access_key_error

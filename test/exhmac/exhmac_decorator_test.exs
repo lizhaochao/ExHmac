@@ -3,7 +3,7 @@ defmodule AuthCenter.Hmac do
     hash_alg: :sha512,
     warn: false,
     nonce_len: 20,
-    get_secret_key_function_name: :get_secret_by_key
+    get_secret_key_fun_name: :get_secret_by_key
 
   alias ExHmac.TestHelper
   alias ExHmac.Repo
@@ -44,6 +44,10 @@ defmodule AuthCenter.Hmac do
     |> Enum.sort()
     |> Enum.map(fn {k, v} -> "#{k}=#{to_json_string.(v)}" end)
     |> Enum.join("&")
+  end
+
+  def encode_hash_result(hash_result) do
+    Base.encode16(hash_result, case: :upper)
   end
 
   def fmt_resp(resp) do

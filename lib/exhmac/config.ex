@@ -54,7 +54,9 @@ defmodule ExHmac.Config do
       nonce_name: get(opts, :nonce_name, :nonce),
       resp_succ_data_name: get(opts, :resp_succ_data_name, :data),
       resp_fail_data_name: get(opts, :resp_fail_data_name, :error),
-      get_secret_key_function_name: get(opts, :get_secret_key_function_name, :get_secret_key),
+      get_secret_key_fun_name: get(opts, :get_secret_key_fun_name, :get_secret_key),
+      encode_hash_result_fun_name: get(opts, :encode_hash_result_fun_name, :encode_hash_result),
+      make_sign_string_fun_name: get(opts, :make_sign_string_fun_name, :make_sign_string),
       # other
       hash_alg: get(opts, :hash_alg, :sha256),
       warn: get(opts, :warn, true),
