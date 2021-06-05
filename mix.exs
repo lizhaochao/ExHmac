@@ -6,7 +6,7 @@ defmodule ExHmac.MixProject do
   @gitee_repo_url "https://gitee.com/lizhaochao/exhmac"
   @github_repo_url "https://github.com/lizhaochao/exhmac"
 
-  @version "0.3.0"
+  @version "0.3.1"
 
   def project do
     [
@@ -18,6 +18,7 @@ defmodule ExHmac.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      xref: [exclude: [:crypto]],
 
       # Test
       test_pattern: "*_test.exs",
