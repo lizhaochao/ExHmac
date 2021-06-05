@@ -18,7 +18,7 @@ defmodule Lijiayou do
   end
 end
 
-defmodule DefhmacTest do
+defmodule ExHmacDefhmacTest do
   use ExUnit.Case
 
   use ExHmac
