@@ -21,6 +21,9 @@ defmodule ExHmac.Config do
 
   def get_search_mins_len, do: @default_search_mins_len
 
+  def get_gc_log_callback,
+    do: Application.get_env(:exhmac, :gc_log_callback, nil)
+
   def get_disable_noncer,
     do: Application.get_env(:exhmac, :disable_noncer, @default_disable_noncer)
 

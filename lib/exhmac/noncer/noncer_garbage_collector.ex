@@ -100,10 +100,16 @@ defmodule ExHmac.Noncer.GarbageCollector do
   ###
   def gc_log(repo, count, [_ | _] = mins, [_ | _] = nonces) when count > 0 do
     with(
-      content <- [gc: :stat, count: count, mins: mins, nonces: nonces],
+      content <- [count: count, mins: mins, nonces: nonces],
       level <- if(count > @gc_warn_count, do: :warn, else: :debug),
-      _ <- Util.log(level, content, &log_color/2)
+      callback <- Config.get_gc_log_callback()
     ) do
+      if is_function(callback) do
+        callback.(content)
+      else
+        Util.log(level, [gc: :stat] ++ content, &log_color/2)
+      end
+
       repo
     end
   end
