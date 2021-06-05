@@ -2,7 +2,7 @@ defmodule ExHmac.Config do
   @moduledoc false
 
   @default_timestamp_offset_secs 900
-  @default_nonce_ttl_secs 900
+  @default_nonce_freezing_secs 900
   @default_nonce_len 6
   @default_precision :second
 
@@ -33,8 +33,8 @@ defmodule ExHmac.Config do
   def get_gc_interval_milli,
     do: Application.get_env(:exhmac, :gc_interval_milli, @default_gc_interval_milli)
 
-  def get_nonce_ttl_secs,
-    do: Application.get_env(:exhmac, :nonce_ttl_secs, @default_nonce_ttl_secs)
+  def get_nonce_freezing_secs,
+    do: Application.get_env(:exhmac, :nonce_freezing_secs, @default_nonce_freezing_secs)
 
   def get_timestamp_offset_secs,
     do: Application.get_env(:exhmac, :timestamp_offset_secs, @default_timestamp_offset_secs)

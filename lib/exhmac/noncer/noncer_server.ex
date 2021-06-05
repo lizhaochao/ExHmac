@@ -39,8 +39,8 @@ defmodule ExHmac.Noncer.Server do
   def handle_info(_, state), do: {:ok, state}
 
   @impl true
-  def handle_call({nonce, curr_ts, ttl, precision}, _from, state) do
-    result = Noncer.check(nonce, curr_ts, ttl, precision)
+  def handle_call({nonce, curr_ts, freezing_secs, precision}, _from, state) do
+    result = Noncer.check(nonce, curr_ts, freezing_secs, precision)
     {:reply, result, state}
   end
 

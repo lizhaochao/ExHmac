@@ -10,7 +10,7 @@ defmodule NoncerTest do
     :ok
   end
 
-  @ttl Config.get_nonce_ttl_secs()
+  @nonce_freezing_secs Config.get_nonce_freezing_secs()
   @precision :millisecond
 
   test "renew nonce arrived_at" do
@@ -19,14 +19,14 @@ defmodule NoncerTest do
     curr_ts1 = get_curr_ts(@precision)
     assert :not_exists == check_sync(nonce, curr_ts1)
     # 2
-    curr_ts2 = curr_ts1 + (@ttl - 1) * 1000
-    assert :not_expired == check_sync(nonce, curr_ts2)
+    curr_ts2 = curr_ts1 + (@nonce_freezing_secs - 1) * 1000
+    assert :freezing == check_sync(nonce, curr_ts2)
     # 3
-    curr_ts3 = curr_ts2 + (@ttl - 1) * 1000
-    assert :not_expired == check_sync(nonce, curr_ts3)
+    curr_ts3 = curr_ts2 + (@nonce_freezing_secs - 1) * 1000
+    assert :freezing == check_sync(nonce, curr_ts3)
     # 4
-    curr_ts4 = curr_ts3 + (@ttl + 1) * 1000
-    assert :expired == check_sync(nonce, curr_ts4)
+    curr_ts4 = curr_ts3 + (@nonce_freezing_secs + 1) * 1000
+    assert :not_freezing == check_sync(nonce, curr_ts4)
 
     %{nonces: nonces, meta: %{shards: shards, mins: mins, counts: counts}} = Noncer.all()
     assert 1 == length(Map.keys(nonces))
@@ -36,7 +36,7 @@ defmodule NoncerTest do
   end
 
   def check_sync(nonce, curr_ts) do
-    {arrived_at, raw_result, _} = Noncer.check(nonce, curr_ts, @ttl, @precision)
+    {arrived_at, raw_result, _} = Noncer.check(nonce, curr_ts, @nonce_freezing_secs, @precision)
     Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, @precision)
     raw_result
   end
@@ -50,7 +50,7 @@ defmodule NoncerWorkerTest do
   alias ExHmac.Config
   alias ExHmac.Noncer
 
-  @ttl Config.get_nonce_ttl_secs()
+  @nonce_freezing_secs Config.get_nonce_freezing_secs()
   @precision Config.get_precision()
 
   describe "do_check/4" do
@@ -59,27 +59,28 @@ defmodule NoncerWorkerTest do
         curr_ts <- 1_622_474_344,
         arrived_at <- nil
       ) do
-        assert {nil, :not_exists, :ok} == Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
+        assert {nil, :not_exists, :ok} ==
+                 Noncer.do_check(arrived_at, curr_ts, @nonce_freezing_secs, @precision)
       end
     end
 
-    test "ok - expired" do
+    test "ok - not freezing" do
       with(
         curr_ts <- 1_622_474_344,
-        arrived_at <- curr_ts - @ttl
+        arrived_at <- curr_ts - @nonce_freezing_secs
       ) do
-        assert {arrived_at, :expired, :ok} ==
-                 Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
+        assert {arrived_at, :not_freezing, :ok} ==
+                 Noncer.do_check(arrived_at, curr_ts, @nonce_freezing_secs, @precision)
       end
     end
 
-    test "invalid nonce - not expired" do
+    test "invalid nonce - freezing" do
       with(
         curr_ts <- 1_622_474_344,
-        arrived_at <- curr_ts - @ttl + 10
+        arrived_at <- curr_ts - @nonce_freezing_secs + 10
       ) do
-        assert {arrived_at, :not_expired, :invalid_nonce} ==
-                 Noncer.do_check(arrived_at, curr_ts, @ttl, @precision)
+        assert {arrived_at, :freezing, :invalid_nonce} ==
+                 Noncer.do_check(arrived_at, curr_ts, @nonce_freezing_secs, @precision)
       end
     end
   end

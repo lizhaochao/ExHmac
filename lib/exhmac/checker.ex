@@ -46,10 +46,10 @@ defmodule ExHmac.Checker do
       %{impl_m: impl_m} <- config,
       {f, _a} <- __ENV__.function,
       curr_ts <- Util.get_curr_ts(),
-      nonce_ttl_secs <- Config.get_nonce_ttl_secs(),
+      nonce_freezing_secs <- Config.get_nonce_freezing_secs(),
       precision <- Config.get_precision(),
       disable_noncer <- Config.get_disable_noncer(),
-      args <- [nonce, curr_ts, nonce_ttl_secs, precision]
+      args <- [nonce, curr_ts, nonce_freezing_secs, precision]
     ) do
       cond do
         function_exported?(impl_m, f, 4) -> apply(impl_m, f, args)

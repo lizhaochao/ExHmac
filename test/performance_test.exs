@@ -4,7 +4,7 @@ defmodule PerformanceTest do
   alias ExHmac.{Config, Noncer, Repo, Util}
   alias ExHmac.Noncer.GarbageCollector, as: GC
 
-  @ttl Config.get_nonce_ttl_secs()
+  @nonce_freezing_secs Config.get_nonce_freezing_secs()
   @precision :millisecond
 
   setup_all do
@@ -15,7 +15,7 @@ defmodule PerformanceTest do
   @tag :performance
   test "check/4" do
     target_n = 60_000
-    test_fun = fn n, curr_ts -> Noncer.check(n, curr_ts, @ttl, @precision) end
+    test_fun = fn n, curr_ts -> Noncer.check(n, curr_ts, @nonce_freezing_secs, @precision) end
     run_with_n(test_fun, target_n)
   end
 
@@ -40,9 +40,9 @@ defmodule PerformanceTest do
     end)
 
     curr_min = Util.to_minute(curr_ts, @precision)
-    ttl_min = Util.to_minute(@ttl, @precision)
+    freezing_min = Util.to_minute(@nonce_freezing_secs, @precision)
     target_n = 55_000
-    test_fun = fn _, _ -> GC.do_collect(curr_min, ttl_min) end
+    test_fun = fn _, _ -> GC.do_collect(curr_min, freezing_min) end
     run_with_n(test_fun, target_n)
     Noncer.all() |> Map.get(:meta)
 
@@ -52,7 +52,7 @@ defmodule PerformanceTest do
 
   ###
   def check_sync(nonce, curr_ts) do
-    {arrived_at, raw_result, _} = Noncer.check(nonce, curr_ts, @ttl, @precision)
+    {arrived_at, raw_result, _} = Noncer.check(nonce, curr_ts, @nonce_freezing_secs, @precision)
     Noncer.save_meta(raw_result, nonce, arrived_at, curr_ts, @precision)
     raw_result
   end

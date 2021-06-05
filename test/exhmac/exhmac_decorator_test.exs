@@ -13,9 +13,9 @@ defmodule AuthCenter.Hmac do
     TestHelper.get_test_secret_key()
   end
 
-  def check_nonce(nonce, curr_ts, nonce_ttl_secs, precision) do
+  def check_nonce(nonce, curr_ts, nonce_freezing_secs, precision) do
     # clean unused warnings
-    {nonce, curr_ts, nonce_ttl_secs, precision}
+    {nonce, curr_ts, nonce_freezing_secs, precision}
 
     arrived_at =
       fn repo ->

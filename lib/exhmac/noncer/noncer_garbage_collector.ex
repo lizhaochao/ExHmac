@@ -10,16 +10,16 @@ defmodule ExHmac.Noncer.GarbageCollector do
     with(
       precision <- Config.get_precision(),
       curr_min <- precision |> Util.get_curr_ts() |> Util.to_minute(precision),
-      ttl_min <- Config.get_nonce_ttl_secs() |> Util.to_minute(:second)
+      freezing_min <- Config.get_nonce_freezing_secs() |> Util.to_minute(:second)
     ) do
-      do_collect(curr_min, ttl_min)
+      do_collect(curr_min, freezing_min)
     end
   end
 
-  def do_collect(curr_min, ttl_min, search_mins_len \\ @default_search_mins_len) do
+  def do_collect(curr_min, freezing_min, search_mins_len \\ @default_search_mins_len) do
     fn repo ->
       with(
-        planned_mins <- make_planned_mins(curr_min, ttl_min, search_mins_len),
+        planned_mins <- make_planned_mins(curr_min, freezing_min, search_mins_len),
         %{mins: mins, shards: shards, counts: counts} <- get_meta(repo),
         {gc_nonces, gc_mins, gc_count} <- get_garbage(planned_mins, mins, shards, counts)
       ) do
@@ -86,11 +86,11 @@ defmodule ExHmac.Noncer.GarbageCollector do
   def update_counts(repo, _counts, _other), do: repo
 
   #
-  def make_planned_mins(curr_min, ttl_min, len) do
+  def make_planned_mins(curr_min, freezing_min, len) do
     with(
-      end_min <- curr_min - (ttl_min + 1),
+      end_min <- curr_min - (freezing_min + 1),
       planned_mins <- for(min <- (end_min - (len - 1))..end_min, do: min),
-      log_content <- [gc: :info, planned_mins: planned_mins, ttl_min: ttl_min],
+      log_content <- [gc: :info, planned_mins: planned_mins, freezing_min: freezing_min],
       _ <- Util.log(:debug, log_content, &log_color/2)
     ) do
       planned_mins

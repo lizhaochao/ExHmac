@@ -43,11 +43,11 @@ defmodule GarbageCollectorTest do
     |> Repo.get()
 
     with(
-      ttl_min <- 15,
-      curr_min <- min2 + ttl_min + 1
+      freezing_min <- 15,
+      curr_min <- min2 + freezing_min + 1
     ) do
       Enum.each(1..3, fn _ ->
-        assert :ok == GC.do_collect(curr_min, ttl_min)
+        assert :ok == GC.do_collect(curr_min, freezing_min)
         Process.sleep(10)
         assert_collect_after()
       end)

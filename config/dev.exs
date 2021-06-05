@@ -5,7 +5,7 @@ config :logger, :console,
   metadata: [:pid],
   level: :debug
 
-config :exhmac, :nonce_ttl_secs, 60
+config :exhmac, :nonce_freezing_secs, 60
 config :exhmac, :timestamp_offset_secs, 60
 config :exhmac, :gc_interval_milli, 20_000
 config :exhmac, :gc_warn_count, 10
