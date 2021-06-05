@@ -26,7 +26,7 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             config <- unquote(config) do
+             config <- Map.put(unquote(config), :impl_m, __MODULE__) do
           Helper.sign(args, access_key, secret_key, config)
         end
       end
