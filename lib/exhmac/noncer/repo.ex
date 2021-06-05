@@ -8,6 +8,6 @@ defmodule ExHmac.Repo do
   def update(fun) when is_function(fun), do: KVRepo.update(fun)
 
   ###
-  def reinit, do: KVRepo.init()
+  def init, do: KVRepo.init()
   def get_all, do: KVRepo.get_repo()
 end

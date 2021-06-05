@@ -8,7 +8,7 @@ defmodule PerformanceTest do
   @precision :millisecond
 
   setup_all do
-    Repo.reinit()
+    Repo.init()
     :ok
   end
 

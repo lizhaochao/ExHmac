@@ -6,7 +6,7 @@ defmodule NoncerTest do
   alias ExHmac.Repo
 
   setup_all do
-    Repo.reinit()
+    Repo.init()
     :ok
   end
 
