@@ -45,6 +45,7 @@ defmodule ExHmac.MixProject do
 
   defp deps do
     [
+      {:atomic_map, "~> 0.9.3"},
       {:poison, "~> 4.0.1"},
       {:decorator, "~> 1.4.0"},
       # Dev and test dependencies
