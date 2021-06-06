@@ -35,8 +35,6 @@ defmodule ExHmacTest do
     :ok
   end
 
-  doctest ExHmac
-
   describe "ok" do
     test "params is keyword" do
       # 1. prepare req data

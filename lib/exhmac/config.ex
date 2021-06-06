@@ -37,10 +37,10 @@ defmodule ExHmac.Config do
 
   ###
   def get_nonce_freezing_secs,
-    do: get_from_repo(:nonce_freezing_secs, @default_nonce_freezing_secs)
+    do: double_get(:nonce_freezing_secs, @default_nonce_freezing_secs)
 
   def get_precision,
-    do: get_from_repo(:precision, @default_precision)
+    do: double_get(:precision, @default_precision)
 
   ###
   def get_config(opts) when is_list(opts) do
@@ -73,12 +73,12 @@ defmodule ExHmac.Config do
   ###
   defp get(data, key, default), do: Keyword.get(data, key, default)
 
-  defp get_from_repo(key, default) do
+  defp double_get(key, default) do
     fun = fn repo ->
       value = get_in(repo, [:config, key])
       {value, repo}
     end
 
-    Repo.get(fun) || default
+    Repo.get(fun) || Application.get_env(:exhmac, key, default)
   end
 end
