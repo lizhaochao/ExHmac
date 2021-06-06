@@ -77,9 +77,14 @@ defmodule ExHmac do
   more detail, please [Download Example](#example).
 
   ### Available Configs
-  the following configs as ExHmac opts
+  as ExHmac opts
   ```elixir
   use ExHmac,
+    # once in-memory cache crash, will lose 2 following configs.
+    # you should set them again in config.exs.
+    precision: :millisecond,
+    nonce_freezing_secs: 60,
+    # normal configs
     hash_alg: :hmac_sha512,
     warn: false,
     nonce_len: 20,
@@ -87,12 +92,16 @@ defmodule ExHmac do
   ```
   the following configs in config.exs
   ```elixir
+  # set them again for exactly gc running.
+  config :exhmac, :precision, :millisecond
   config :exhmac, :nonce_freezing_secs, 60
+  # normal configs
   config :exhmac, :gc_interval_milli, 20_000
   config :exhmac, :gc_warn_count, 10
   config :exhmac, :disable_noncer, false # disable local in-memory cache
   config :exhmac, :gc_log_callback, &MyHmac.gc_log/1
   ```
+  `NOTICE`: `precision` & `nonce_freezing_secs` set 2 places, once you don't want to use default values.
   """
 
   defmacro __using__(opts) do
