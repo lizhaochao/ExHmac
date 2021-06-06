@@ -47,6 +47,8 @@ defmodule ExHmac.Config do
     %{
       # time calculation
       nonce_len: get(opts, :nonce_len, @default_nonce_len),
+      precision: get(opts, :precision, @default_precision),
+      nonce_freezing_secs: get(opts, :nonce_freezing_secs, @default_nonce_freezing_secs),
       timestamp_offset_secs: get(opts, :timestamp_offset_secs, @default_timestamp_offset_secs),
       # default name
       access_key_name: get(opts, :access_key_name, :access_key),

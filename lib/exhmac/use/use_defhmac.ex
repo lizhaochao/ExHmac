@@ -1,7 +1,7 @@
 defmodule ExHmac.Use.Defhmac do
   @moduledoc false
 
-  alias ExHmac.Parser
+  alias ExHmac.{Config, Parser}
   alias ExHmac.Use.Helper
   alias ExHmac.Use.Defhmac, as: Self
 
@@ -9,7 +9,7 @@ defmodule ExHmac.Use.Defhmac do
     quote do
       defmacro defhmac(call, do: block) do
         with(
-          config <- Helper.fill_config(unquote(opts), __MODULE__),
+          config <- unquote(opts) |> Config.get_config() |> Helper.put_impl_m(__MODULE__),
           _ <- Helper.pre_check(config),
           {f, a, guard} <- Parser.parser(call)
         ) do
@@ -25,7 +25,7 @@ defmodule ExHmac.Use.Defhmac do
         with(
           args <- unquote(make_args(a)),
           exec_block <- fn -> unquote(block) end,
-          config <- unquote(Macro.escape(config))
+          config <- unquote(Macro.escape(config)) |> Helper.save_config()
         ) do
           Helper.do_check_hmac(args, exec_block, config)
         end

@@ -3,8 +3,22 @@ defmodule ExHmac do
   HMAC Authentication
   ## Example
   This Example Project is the basis for ExHmac, help you use well.
+
   Download via [Gitee](https://gitee.com/lizhaochao/exhmac_example) or [Github](https://github.com/lizhaochao/exhmac_example).
 
+  Once downloaded, Two Things Todo:
+
+  ```bash
+  mix deps.get
+  mix test
+  ```
+  ```bash
+  # confirm gc configs which are expected, run following commands.
+  # use test.exs to run
+  MIX_ENV=test iex -S mix
+  # use dev.exs to run
+  iex -S mix
+  ```
   ## Usage
   ### Quick Start
   Here’s a commented example.
@@ -66,6 +80,7 @@ defmodule ExHmac do
   - `:blake2b` & `:hmac_blake2b`
   - `:blake2s` & `:hmac_blake2s`
   - `:md5` & `:hmac_md5`
+
   ### Callbacks
   - `get_secret_key/1`, required, you must provide secret.
   - `check_nonce/4`, If you want to use Redis getset command to check nonce, then implements it.
@@ -96,9 +111,9 @@ defmodule ExHmac do
   config :exhmac, :precision, :millisecond
   config :exhmac, :nonce_freezing_secs, 60
   # normal configs
+  config :exhmac, :disable_noncer, false # disable local in-memory cache
   config :exhmac, :gc_interval_milli, 20_000
   config :exhmac, :gc_warn_count, 10
-  config :exhmac, :disable_noncer, false # disable local in-memory cache
   config :exhmac, :gc_log_callback, &MyHmac.gc_log/1
   ```
   `NOTICE`: `precision` & `nonce_freezing_secs` set 2 places, once you don't want to use default values.
