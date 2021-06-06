@@ -5,6 +5,7 @@ defmodule ExHmac.Repo do
 
   ###
   def get(fun) when is_function(fun), do: KVRepo.get(fun)
+  def sync_update(fun) when is_function(fun), do: KVRepo.get(fun)
   def update(fun) when is_function(fun), do: KVRepo.update(fun)
 
   ###

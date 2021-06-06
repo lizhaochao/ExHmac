@@ -33,7 +33,7 @@ defmodule ExHmac.KVRepo.Server do
   ###  }                                                                 ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-  @init_repo %{nonces: %{}, meta: %{counts: %{}, shards: %{}, mins: MapSet.new()}}
+  @init_repo %{config: %{}, nonces: %{}, meta: %{counts: %{}, shards: %{}, mins: MapSet.new()}}
 
   def start_link(opts) when is_list(opts) do
     with(

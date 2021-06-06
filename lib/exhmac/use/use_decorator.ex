@@ -1,14 +1,13 @@
 defmodule ExHmac.Use.Decorator do
   @moduledoc false
 
-  alias ExHmac.Config
   alias ExHmac.Use.Helper
   alias ExHmac.Use.Decorator, as: Self
 
   defmacro __using__(opts) do
     quote do
       def check_hmac(block, %Decorator.Decorate.Context{} = ctx) do
-        config = unquote(opts) |> Config.get_config() |> Map.put(:impl_m, __MODULE__)
+        config = Helper.fill_config(unquote(opts), __MODULE__)
         Helper.pre_check(config)
 
         with config_expr <- Macro.escape(config),

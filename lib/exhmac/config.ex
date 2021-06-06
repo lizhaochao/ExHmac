@@ -1,6 +1,8 @@
 defmodule ExHmac.Config do
   @moduledoc false
 
+  alias ExHmac.Repo
+
   @default_timestamp_offset_secs 900
   @default_nonce_freezing_secs 900
   @default_nonce_len 6
@@ -35,10 +37,10 @@ defmodule ExHmac.Config do
 
   ###
   def get_nonce_freezing_secs,
-    do: Application.get_env(:exhmac, :nonce_freezing_secs, @default_nonce_freezing_secs)
+    do: get_from_repo(:nonce_freezing_secs, @default_nonce_freezing_secs)
 
   def get_precision,
-    do: Application.get_env(:exhmac, :precision, @default_precision)
+    do: get_from_repo(:precision, @default_precision)
 
   ###
   def get_config(opts) when is_list(opts) do
@@ -70,4 +72,13 @@ defmodule ExHmac.Config do
 
   ###
   defp get(data, key, default), do: Keyword.get(data, key, default)
+
+  defp get_from_repo(key, default) do
+    fun = fn repo ->
+      value = get_in(repo, [:config, key])
+      {value, repo}
+    end
+
+    Repo.get(fun) || default
+  end
 end

@@ -1,7 +1,7 @@
 defmodule ExHmac.Use.Helper do
   @moduledoc false
 
-  alias ExHmac.{Checker, Signer, Noncer, Util}
+  alias ExHmac.{Checker, Config, Noncer, Repo, Signer, Util}
 
   def check_timestamp(args, config) do
     with %{timestamp_name: timestamp_name} <- config,
@@ -231,6 +231,28 @@ defmodule ExHmac.Use.Helper do
       {:fmt, resp}
     else
       false -> {:default, resp}
+    end
+  end
+
+  ###
+  def fill_config(opts, impl_m) do
+    opts |> Config.get_config() |> save_config() |> put_impl_m(impl_m)
+  end
+
+  def put_impl_m(config, impl_m) do
+    Map.put(config, :impl_m, impl_m)
+  end
+
+  def save_config(config) do
+    with(
+      new_config <- Map.take(config, [:precision, :nonce_freezing_secs]),
+      fun <- fn repo ->
+        new_repo = put_in(repo, [:config], new_config)
+        {new_config, new_repo}
+      end,
+      _ <- Repo.sync_update(fun)
+    ) do
+      config
     end
   end
 end
