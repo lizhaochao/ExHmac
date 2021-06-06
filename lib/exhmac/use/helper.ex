@@ -69,15 +69,15 @@ defmodule ExHmac.Use.Helper do
   end
 
   ###
-  def gen_timestamp(prec, config) do
-    with precision <- prec || Map.get(config, :precision) do
+  def gen_timestamp(config) do
+    with precision <- Map.get(config, :precision) do
       Util.get_curr_ts(precision)
     end
   end
 
   ###
-  def gen_nonce(len, config) do
-    with nonce_len <- len || Map.get(config, :nonce_len) do
+  def gen_nonce(config) do
+    with nonce_len <- Map.get(config, :nonce_len) do
       Noncer.gen_nonce(nonce_len)
     end
   end
@@ -121,8 +121,8 @@ defmodule ExHmac.Use.Helper do
            nonce_name: nonce_name
          } <- config do
       []
-      |> Keyword.put(timestamp_name, gen_timestamp(nil, config))
-      |> Keyword.put(nonce_name, gen_nonce(nil, config))
+      |> Keyword.put(timestamp_name, gen_timestamp(config))
+      |> Keyword.put(nonce_name, gen_nonce(config))
       |> Keyword.merge(resp)
     end
   end

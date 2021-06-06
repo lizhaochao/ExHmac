@@ -99,7 +99,7 @@ defmodule ExHmacTest do
 
     test "timestamp" do
       # 1. prepare req data
-      with params <- Test.make_req_params(gen_timestamp(:millisecond), nil),
+      with params <- Test.make_req_params(gen_timestamp() * 1000, nil),
            signature <- Test.make_signature(params),
            params <- Test.append_signature(params, signature),
            json_string <- TestHelper.serialize(params),

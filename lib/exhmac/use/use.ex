@@ -31,8 +31,8 @@ defmodule ExHmac.Use do
         end
       end
 
-      def gen_timestamp(precision \\ nil), do: Helper.gen_timestamp(precision, unquote(config))
-      def gen_nonce(len \\ nil), do: Helper.gen_nonce(len, unquote(config))
+      def gen_timestamp, do: Helper.gen_timestamp(unquote(config))
+      def gen_nonce, do: Helper.gen_nonce(unquote(config))
     end
   end
 end
