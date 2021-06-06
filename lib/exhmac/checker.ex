@@ -10,9 +10,8 @@ defmodule ExHmac.Checker do
   ### Timestamp
   def check_timestamp(ts, config) when is_integer(ts) and ts > 0 and is_map(config) do
     with(
-      %{warn: warn} <- config,
+      %{timestamp_offset_secs: timestamp_offset_secs, warn: warn} <- config,
       precision <- Config.get_precision(),
-      timestamp_offset_secs <- Config.get_timestamp_offset_secs(),
       curr_ts <- Util.get_curr_ts(precision),
       _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
       offset <- get_offset(precision, timestamp_offset_secs)

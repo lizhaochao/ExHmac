@@ -18,14 +18,11 @@ defmodule ExHmac.Config do
   @compatibility_only_hash [:md5]
 
   def hmac_hash_algs_prefix, do: "hmac_"
-
   def get_search_mins_len, do: @default_search_mins_len
 
+  ###
   def get_gc_log_callback,
     do: Application.get_env(:exhmac, :gc_log_callback, nil)
-
-  def get_disable_noncer,
-    do: Application.get_env(:exhmac, :disable_noncer, @default_disable_noncer)
 
   def get_gc_warn_count,
     do: Application.get_env(:exhmac, :gc_warn_count, @default_gc_warn_count)
@@ -33,19 +30,22 @@ defmodule ExHmac.Config do
   def get_gc_interval_milli,
     do: Application.get_env(:exhmac, :gc_interval_milli, @default_gc_interval_milli)
 
+  def get_disable_noncer,
+    do: Application.get_env(:exhmac, :disable_noncer, @default_disable_noncer)
+
+  ###
   def get_nonce_freezing_secs,
     do: Application.get_env(:exhmac, :nonce_freezing_secs, @default_nonce_freezing_secs)
-
-  def get_timestamp_offset_secs,
-    do: Application.get_env(:exhmac, :timestamp_offset_secs, @default_timestamp_offset_secs)
 
   def get_precision,
     do: Application.get_env(:exhmac, :precision, @default_precision)
 
+  ###
   def get_config(opts) when is_list(opts) do
     %{
       # time calculation
       nonce_len: get(opts, :nonce_len, @default_nonce_len),
+      timestamp_offset_secs: get(opts, :timestamp_offset_secs, @default_timestamp_offset_secs),
       # default name
       access_key_name: get(opts, :access_key_name, :access_key),
       secret_key_name: get(opts, :secret_key_name, :secret_key),

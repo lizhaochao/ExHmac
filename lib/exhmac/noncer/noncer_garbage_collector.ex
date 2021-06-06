@@ -9,8 +9,8 @@ defmodule ExHmac.Noncer.GarbageCollector do
   def collect do
     with(
       precision <- Config.get_precision(),
-      curr_min <- precision |> Util.get_curr_ts() |> Util.to_minute(precision),
-      freezing_min <- Config.get_nonce_freezing_secs() |> Util.to_minute(:second)
+      freezing_min <- Config.get_nonce_freezing_secs() |> Util.to_minute(:second),
+      curr_min <- precision |> Util.get_curr_ts() |> Util.to_minute(precision)
     ) do
       do_collect(curr_min, freezing_min)
     end
