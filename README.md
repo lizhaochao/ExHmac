@@ -95,6 +95,7 @@ iex> # start request & get check response result
 These hokks only effect decorator & defhmac.
 
 ### Callbacks
+- `get_access_key/1`, get/evaluate access key from input args.
 - `get_secret_key/1`, required, you must provide secret.
 - `check_nonce/4`, If you want to use Redis getset command to check nonce, then implements it.
 - `make_sign_string/3`, change sign string rule.
