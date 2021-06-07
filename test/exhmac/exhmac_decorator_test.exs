@@ -58,6 +58,9 @@ defmodule AuthCenter.Server.Hmac do
   alias ExHmac.TestHelper
   alias ExHmac.Repo
 
+  def pre_hook(args), do: args
+  def post_hook(resp), do: resp
+
   def get_access_key(args) do
     Keyword.get(args, :access_key, TestHelper.get_test_access_key())
   end

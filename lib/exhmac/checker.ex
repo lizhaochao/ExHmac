@@ -42,7 +42,7 @@ defmodule ExHmac.Checker do
   ### Nonce
   def check_nonce(nonce, %ExHmac.Config{} = config) when is_bitstring(nonce) do
     with(
-      %ExHmac.Config{impl_m: impl_m} <- config,
+      %{impl_m: impl_m} <- config,
       {f, _a} <- __ENV__.function,
       curr_ts <- Util.get_curr_ts(),
       nonce_freezing_secs <- Config.get_nonce_freezing_secs(),

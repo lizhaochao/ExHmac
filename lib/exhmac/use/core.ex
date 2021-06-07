@@ -1,18 +1,22 @@
 defmodule ExHmac.Core do
   @moduledoc false
 
-  alias ExHmac.{Checker, Noncer, Signer, Util}
+  alias ExHmac.{Checker, Hook, Noncer, Signer, Util}
 
   def do_check_hmac(args, exec_block, config)
       when is_list(args) and is_function(exec_block) do
-    with access_key when is_bitstring(access_key) <- get_access_key(args, config),
-         secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
-         resp <- do_check_hmac(args, access_key, secret_key, config, exec_block),
-         resp <- fmt_resp(resp, config) do
+    with(
+      [_ | _] = args <- Hook.pre_hook(args, config),
+      access_key when is_bitstring(access_key) <- get_access_key(args, config),
+      secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
+      resp <- do_check_hmac(args, access_key, secret_key, config, exec_block),
+      resp <- fmt_resp(resp, config)
+    ) do
       make_resp_with_hmac(resp, config, access_key, secret_key)
     else
       err_without_hmac -> err_without_hmac |> fmt_resp(config) |> make_resp_with_hmac(config)
     end
+    |> Hook.post_hook(config)
   end
 
   def do_check_hmac(args, access_key, secret_key, config, exec_block \\ fn -> :ok end) do
