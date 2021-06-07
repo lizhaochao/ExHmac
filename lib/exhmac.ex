@@ -81,6 +81,12 @@ defmodule ExHmac do
   - `:blake2s` & `:hmac_blake2s`
   - `:md5` & `:hmac_md5`
 
+  ### Hooks
+  - `pre_hook/1`, before check hmac, give you origin args with keyword.
+  - `post_hook/1`, after check hmac, this output is final.
+
+  These hokks only effect decorator & defhmac.
+
   ### Callbacks
   - `get_secret_key/1`, required, you must provide secret.
   - `check_nonce/4`, If you want to use Redis getset command to check nonce, then implements it.
