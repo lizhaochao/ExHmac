@@ -9,9 +9,9 @@ defmodule ExHmac.Core do
          secret_key when is_bitstring(secret_key) <- get_secret_key(access_key, config),
          resp <- do_check_hmac(args, access_key, secret_key, config, exec_block),
          resp <- fmt_resp(resp, config) do
-      make_resp(resp, config, access_key, secret_key)
+      make_resp_with_hmac(resp, config, access_key, secret_key)
     else
-      err_without_hmac -> err_without_hmac |> fmt_resp(config) |> make_resp(config)
+      err_without_hmac -> err_without_hmac |> fmt_resp(config) |> make_resp_with_hmac(config)
     end
   end
 
@@ -27,7 +27,7 @@ defmodule ExHmac.Core do
 
   ###
   def get_access_key(args, config) do
-    %{
+    %ExHmac.Config{
       impl_m: impl_m,
       get_access_key_fun_name: get_access_key_fun_name,
       access_key_name: access_key_name
@@ -50,7 +50,7 @@ defmodule ExHmac.Core do
   end
 
   def get_secret_key(access_key, config) do
-    %{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
+    %ExHmac.Config{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
 
     impl_m
     |> apply(get_secret_key_fun_name, [access_key])
@@ -65,7 +65,7 @@ defmodule ExHmac.Core do
   ###
   def fmt_resp(resp, config) do
     with(
-      %{impl_m: impl_m} <- config,
+      %ExHmac.Config{impl_m: impl_m} <- config,
       {f, a} <- __ENV__.function,
       true <- function_exported?(impl_m, f, a - 1),
       resp <- apply(impl_m, f, [resp])
@@ -76,24 +76,24 @@ defmodule ExHmac.Core do
     end
   end
 
-  def make_resp({:default, resp}, config) do
+  def make_resp_with_hmac({:default, resp}, config) do
     resp_data_name = get_resp_data_name(resp, config)
     Keyword.put([], resp_data_name, resp)
   end
 
-  def make_resp({:fmt, resp}, _config) do
+  def make_resp_with_hmac({:fmt, resp}, _config) do
     resp
     |> Checker.keyword_or_map!("resp")
     |> Util.to_keyword()
   end
 
-  def make_resp({:default, _} = default_resp, config, access_key, secret_key) do
+  def make_resp_with_hmac({:default, _} = default_resp, config, access_key, secret_key) do
     default_resp
-    |> make_resp(config)
+    |> make_resp_with_hmac(config)
     |> append_hmac(config, access_key, secret_key)
   end
 
-  def make_resp({:fmt, resp}, config, access_key, secret_key) do
+  def make_resp_with_hmac({:fmt, resp}, config, access_key, secret_key) do
     resp
     |> Checker.keyword_or_map!("resp")
     |> Util.to_keyword()
@@ -101,15 +101,15 @@ defmodule ExHmac.Core do
   end
 
   def append_hmac(resp, config, access_key, secret_key) do
-    with args <- make_resp_args(resp, config),
+    with args <- make_resp_with_hmac_args(resp, config),
          signature <- sign(args, access_key, secret_key, config),
          args <- put_signature(args, signature, config) do
       args
     end
   end
 
-  def make_resp_args(resp, config) do
-    with %{
+  def make_resp_with_hmac_args(resp, config) do
+    with %ExHmac.Config{
            timestamp_name: timestamp_name,
            nonce_name: nonce_name
          } <- config do
@@ -121,13 +121,13 @@ defmodule ExHmac.Core do
   end
 
   def put_signature(args, signature, config) do
-    with %{signature_name: signature_name} <- config do
+    with %ExHmac.Config{signature_name: signature_name} <- config do
       Keyword.put(args, signature_name, signature)
     end
   end
 
   def get_resp_data_name(resp, config) do
-    %{
+    %ExHmac.Config{
       resp_succ_data_name: resp_succ_data_name,
       resp_fail_data_name: resp_fail_data_name
     } = config
@@ -140,7 +140,7 @@ defmodule ExHmac.Core do
 
   ###
   def check_timestamp(args, config) do
-    with %{timestamp_name: timestamp_name} <- config,
+    with %ExHmac.Config{timestamp_name: timestamp_name} <- config,
          {:ok, timestamp} <- Keyword.fetch(args, timestamp_name) do
       Checker.check_timestamp(timestamp, config)
     else
@@ -150,7 +150,7 @@ defmodule ExHmac.Core do
   end
 
   def check_nonce(args, config) do
-    with %{nonce_name: nonce_name} <- config,
+    with %ExHmac.Config{nonce_name: nonce_name} <- config,
          {:ok, nonce} <- Keyword.fetch(args, nonce_name) do
       Checker.check_nonce(nonce, config)
     else
@@ -160,7 +160,7 @@ defmodule ExHmac.Core do
   end
 
   def check_signature(args, access_key, secret_key, config) do
-    with %{signature_name: signature_name} <- config,
+    with %ExHmac.Config{signature_name: signature_name} <- config,
          {signature, args} when not is_nil(signature) <- Keyword.pop(args, signature_name),
          my_signature <- sign(args, access_key, secret_key, config),
          true <- String.downcase(signature) == String.downcase(my_signature) do
@@ -173,7 +173,7 @@ defmodule ExHmac.Core do
   ###
   def sign(args, access_key, secret_key, config) do
     with(
-      %{
+      %ExHmac.Config{
         impl_m: impl_m,
         make_sign_string_fun_name: make_sign_string_fun_name
       } <- config,
@@ -187,7 +187,7 @@ defmodule ExHmac.Core do
   end
 
   def do_sign(sign_string, access_key, config) do
-    %{
+    %ExHmac.Config{
       impl_m: impl_m,
       hash_alg: hash_alg,
       encode_hash_result_fun_name: encode_hash_result_fun_name

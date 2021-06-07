@@ -19,7 +19,32 @@ defmodule ExHmac.Config do
   @blake2 [:blake2b, :blake2s]
   @compatibility_only_hash [:md5]
 
-  def hmac_hash_algs_prefix, do: "hmac_"
+  defstruct [
+    # time calculation
+    precision: @default_precision,
+    nonce_freezing_secs: @default_nonce_freezing_secs,
+    timestamp_offset_secs: @default_timestamp_offset_secs,
+    # default name
+    access_key_name: :access_key,
+    secret_key_name: :secret_key,
+    signature_name: :signature,
+    timestamp_name: :timestamp,
+    nonce_name: :nonce,
+    resp_succ_data_name: :data,
+    resp_fail_data_name: :error,
+    get_access_key_fun_name: :get_access_key,
+    get_secret_key_fun_name: :get_secret_key,
+    encode_hash_result_fun_name: :encode_hash_result,
+    make_sign_string_fun_name: :make_sign_string,
+    #
+    nonce_len: @default_nonce_len,
+    hash_alg: :sha256,
+    warn: true,
+    #
+    impl_m: nil
+  ]
+
+  def hmac_hash_alg_prefix, do: "hmac_"
   def get_search_mins_len, do: @default_search_mins_len
 
   ###
@@ -43,39 +68,14 @@ defmodule ExHmac.Config do
     do: double_get(:precision, @default_precision)
 
   ###
-  def get_config(opts) when is_list(opts) do
-    %{
-      # time calculation
-      precision: get(opts, :precision, @default_precision),
-      nonce_freezing_secs: get(opts, :nonce_freezing_secs, @default_nonce_freezing_secs),
-      timestamp_offset_secs: get(opts, :timestamp_offset_secs, @default_timestamp_offset_secs),
-      # default name
-      access_key_name: get(opts, :access_key_name, :access_key),
-      secret_key_name: get(opts, :secret_key_name, :secret_key),
-      signature_name: get(opts, :signature_name, :signature),
-      timestamp_name: get(opts, :timestamp_name, :timestamp),
-      nonce_name: get(opts, :nonce_name, :nonce),
-      resp_succ_data_name: get(opts, :resp_succ_data_name, :data),
-      resp_fail_data_name: get(opts, :resp_fail_data_name, :error),
-      get_access_key_fun_name: get(opts, :get_access_key_fun_name, :get_access_key),
-      get_secret_key_fun_name: get(opts, :get_secret_key_fun_name, :get_secret_key),
-      encode_hash_result_fun_name: get(opts, :encode_hash_result_fun_name, :encode_hash_result),
-      make_sign_string_fun_name: get(opts, :make_sign_string_fun_name, :make_sign_string),
-      #
-      nonce_len: get(opts, :nonce_len, @default_nonce_len),
-      hash_alg: get(opts, :hash_alg, :sha256),
-      warn: get(opts, :warn, true),
-      #
-      impl_m: nil
-    }
-  end
+  def get_config(opts) when is_list(opts),
+    do: struct(__MODULE__, opts)
 
   ###
-  def support_hash_algs, do: @sha1 ++ @sha2 ++ @sha3 ++ @blake2 ++ @compatibility_only_hash
+  def support_hash_algs,
+    do: @sha1 ++ @sha2 ++ @sha3 ++ @blake2 ++ @compatibility_only_hash
 
   ###
-  defp get(data, key, default), do: Keyword.get(data, key, default)
-
   defp double_get(key, default) do
     fun = fn repo ->
       value = get_in(repo, [:config, key])

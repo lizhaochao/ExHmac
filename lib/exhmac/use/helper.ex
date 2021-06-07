@@ -4,7 +4,7 @@ defmodule ExHmac.Use.Helper do
   alias ExHmac.{Checker, Repo}
 
   def pre_check(config) do
-    %{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
+    %ExHmac.Config{impl_m: impl_m, get_secret_key_fun_name: get_secret_key_fun_name} = config
     Checker.require_function!(impl_m, get_secret_key_fun_name, 1)
   end
 

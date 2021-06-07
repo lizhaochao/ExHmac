@@ -6,14 +6,14 @@ defmodule ExHmac.Util do
   alias ExHmac.{Config, Error}
 
   @support_hash_algs Config.support_hash_algs()
-  @hmac_hash_algs_prefix Config.hmac_hash_algs_prefix()
+  @hmac_hash_alg_prefix Config.hmac_hash_alg_prefix()
 
   def contain_hmac?(hash_alg) when is_atom(hash_alg) do
     hash_alg
     |> to_string()
     |> String.downcase()
-    |> String.slice(0, String.length(@hmac_hash_algs_prefix))
-    |> Kernel.==(@hmac_hash_algs_prefix)
+    |> String.slice(0, String.length(@hmac_hash_alg_prefix))
+    |> Kernel.==(@hmac_hash_alg_prefix)
   end
 
   def contain_hmac?(_other), do: raise(Error, "hash_alg should be atom")
@@ -22,7 +22,7 @@ defmodule ExHmac.Util do
     hash_alg
     |> to_string()
     |> String.downcase()
-    |> String.replace(@hmac_hash_algs_prefix, "")
+    |> String.replace(@hmac_hash_alg_prefix, "")
     |> String.to_atom()
     |> case do
       pruned_hash_alg when pruned_hash_alg in @support_hash_algs -> pruned_hash_alg

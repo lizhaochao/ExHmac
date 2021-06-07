@@ -10,7 +10,7 @@ defmodule ExHmac.Checker do
   ### Timestamp
   def check_timestamp(ts, config) when is_integer(ts) and ts > 0 and is_map(config) do
     with(
-      %{timestamp_offset_secs: timestamp_offset_secs, warn: warn} <- config,
+      %ExHmac.Config{timestamp_offset_secs: timestamp_offset_secs, warn: warn} <- config,
       precision <- Config.get_precision(),
       curr_ts <- Util.get_curr_ts(precision),
       _ <- warn_offset(curr_ts, ts, warn, @warn_text, @warn_ratio),
@@ -40,9 +40,9 @@ defmodule ExHmac.Checker do
   def do_warn_offset(_, _, _), do: :ignore
 
   ### Nonce
-  def check_nonce(nonce, %{} = config) when is_bitstring(nonce) do
+  def check_nonce(nonce, %ExHmac.Config{} = config) when is_bitstring(nonce) do
     with(
-      %{impl_m: impl_m} <- config,
+      %ExHmac.Config{impl_m: impl_m} <- config,
       {f, _a} <- __ENV__.function,
       curr_ts <- Util.get_curr_ts(),
       nonce_freezing_secs <- Config.get_nonce_freezing_secs(),
