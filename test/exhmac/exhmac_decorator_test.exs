@@ -98,6 +98,7 @@ defmodule AuthCenter.Server.Hmac do
     |> Keyword.drop([:signature])
     |> Keyword.put(:access_key, access_key)
     |> Keyword.put(:secret_key, secret_key)
+    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
     |> Enum.sort()
     |> Enum.map(fn {k, v} -> "#{k}=#{to_json_string.(v)}" end)
     |> Enum.join("&")

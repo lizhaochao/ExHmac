@@ -32,6 +32,7 @@ defmodule ExHmac.Signer do
       |> Keyword.drop([signature_name])
       |> Keyword.put(access_key_name, access_key)
       |> Keyword.put(secret_key_name, secret_key)
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
       |> Enum.sort()
       |> Enum.map(fn {k, v} -> "#{k}=#{to_json_string(v)}" end)
       |> Enum.join("&")
