@@ -58,6 +58,10 @@ defmodule AuthCenter.Server.Hmac do
   alias ExHmac.TestHelper
   alias ExHmac.Repo
 
+  def get_access_key(args) do
+    Keyword.get(args, :access_key, TestHelper.get_test_access_key())
+  end
+
   def get_secret_by_key(access_key) do
     {access_key}
     TestHelper.get_test_secret_key()

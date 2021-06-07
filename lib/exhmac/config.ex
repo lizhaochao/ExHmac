@@ -46,7 +46,6 @@ defmodule ExHmac.Config do
   def get_config(opts) when is_list(opts) do
     %{
       # time calculation
-      nonce_len: get(opts, :nonce_len, @default_nonce_len),
       precision: get(opts, :precision, @default_precision),
       nonce_freezing_secs: get(opts, :nonce_freezing_secs, @default_nonce_freezing_secs),
       timestamp_offset_secs: get(opts, :timestamp_offset_secs, @default_timestamp_offset_secs),
@@ -58,10 +57,12 @@ defmodule ExHmac.Config do
       nonce_name: get(opts, :nonce_name, :nonce),
       resp_succ_data_name: get(opts, :resp_succ_data_name, :data),
       resp_fail_data_name: get(opts, :resp_fail_data_name, :error),
+      get_access_key_fun_name: get(opts, :get_access_key_fun_name, :get_access_key),
       get_secret_key_fun_name: get(opts, :get_secret_key_fun_name, :get_secret_key),
       encode_hash_result_fun_name: get(opts, :encode_hash_result_fun_name, :encode_hash_result),
       make_sign_string_fun_name: get(opts, :make_sign_string_fun_name, :make_sign_string),
-      # other
+      #
+      nonce_len: get(opts, :nonce_len, @default_nonce_len),
       hash_alg: get(opts, :hash_alg, :sha256),
       warn: get(opts, :warn, true),
       #

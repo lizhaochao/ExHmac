@@ -196,14 +196,25 @@ defmodule ExHmac.Core do
 
   ###
   def get_access_key(args, config) do
-    %{access_key_name: access_key_name} = config
+    %{
+      impl_m: impl_m,
+      get_access_key_fun_name: get_access_key_fun_name,
+      access_key_name: access_key_name
+    } = config
 
-    args
-    |> Keyword.fetch(access_key_name)
+    if function_exported?(impl_m, get_access_key_fun_name, 1) do
+      apply(impl_m, get_access_key_fun_name, [args])
+    else
+      Keyword.fetch(args, access_key_name)
+    end
     |> case do
+      {:ok, access_key} -> access_key
+      other -> other
+    end
+    |> case do
+      access_key when is_bitstring(access_key) and access_key != "" -> access_key
       :error -> :not_found_access_key
-      {:ok, access_key} when is_bitstring(access_key) and access_key != "" -> access_key
-      _access_key -> :get_access_key_error
+      _other -> :get_access_key_error
     end
   end
 
