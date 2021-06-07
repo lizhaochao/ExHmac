@@ -203,7 +203,7 @@ defmodule ExHmac.Use.Helper do
     |> case do
       :error -> :not_found_access_key
       {:ok, access_key} when is_bitstring(access_key) and access_key != "" -> access_key
-      _access_key -> :access_key_error
+      _access_key -> :get_access_key_error
     end
   end
 
@@ -214,7 +214,7 @@ defmodule ExHmac.Use.Helper do
     |> apply(get_secret_key_fun_name, [access_key])
     |> case do
       secret_key when is_bitstring(secret_key) -> secret_key
-      secret_key when is_nil(secret_key) or secret_key == "" -> :access_key_error
+      secret_key when is_nil(secret_key) or secret_key == "" -> :secret_key_error
       err when is_atom(err) -> err
       _ -> :get_secret_key_error
     end

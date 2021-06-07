@@ -175,7 +175,7 @@ defmodule ExHmacDecoratorTest do
         resp = Server.sign_in(@username, @passwd, access_key, timestamp, nonce, signature)
         %{error_msg: error_msg} = resp = Map.new(resp)
         assert 2 == map_size(resp)
-        assert to_string(:access_key_error) == error_msg
+        assert to_string(:get_access_key_error) == error_msg
       end
     end
 
