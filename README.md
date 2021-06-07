@@ -4,7 +4,7 @@ HMAC Authentication
 Add ExHmac to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
-  [{:exhmac, ">= 1.0.0"}]
+  [{:exhmac, "~> 1.1.1"}]
 end
 ```
 run `mix deps.get`.
