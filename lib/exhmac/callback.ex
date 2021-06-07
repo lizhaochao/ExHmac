@@ -52,9 +52,9 @@ defmodule ExHmac.Callback do
   end
 
   ### same function name
-  def check_nonce(nonce, args, %ExHmac.Config{} = config) when is_bitstring(nonce) do
+  def check_nonce(args, config) do
     with(
-      %{impl_m: impl_m} <- config,
+      %ExHmac.Config{impl_m: impl_m} <- config,
       {f, _a} <- __ENV__.function,
       true <- function_exported?(impl_m, f, 4)
     ) do

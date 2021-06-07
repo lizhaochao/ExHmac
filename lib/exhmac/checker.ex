@@ -46,7 +46,7 @@ defmodule ExHmac.Checker do
       nonce_freezing_secs <- Config.get_nonce_freezing_secs(),
       precision <- Config.get_precision(),
       args <- [nonce, curr_ts, nonce_freezing_secs, precision],
-      false <- Callback.check_nonce(nonce, args, config),
+      false <- Callback.check_nonce(args, config),
       disable_noncer <- Config.get_disable_noncer()
     ) do
       if disable_noncer do
