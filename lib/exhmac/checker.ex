@@ -1,7 +1,7 @@
 defmodule ExHmac.Checker do
   @moduledoc false
 
-  alias ExHmac.{Config, Error, Util}
+  alias ExHmac.{Callback, Config, Error, Util}
   alias ExHmac.Noncer.Client, as: NoncerClient
 
   @warn_text "your timestamp may be a millisecond precision."
@@ -42,18 +42,17 @@ defmodule ExHmac.Checker do
   ### Nonce
   def check_nonce(nonce, %ExHmac.Config{} = config) when is_bitstring(nonce) do
     with(
-      %{impl_m: impl_m} <- config,
-      {f, _a} <- __ENV__.function,
       curr_ts <- Util.get_curr_ts(),
       nonce_freezing_secs <- Config.get_nonce_freezing_secs(),
       precision <- Config.get_precision(),
-      disable_noncer <- Config.get_disable_noncer(),
-      args <- [nonce, curr_ts, nonce_freezing_secs, precision]
+      args <- [nonce, curr_ts, nonce_freezing_secs, precision],
+      false <- Callback.check_nonce(nonce, args, config),
+      disable_noncer <- Config.get_disable_noncer()
     ) do
-      cond do
-        function_exported?(impl_m, f, 4) -> apply(impl_m, f, args)
-        disable_noncer -> :ok
-        true -> apply(NoncerClient, :check, args)
+      if disable_noncer do
+        :ok
+      else
+        apply(NoncerClient, :check, args)
       end
     end
   end

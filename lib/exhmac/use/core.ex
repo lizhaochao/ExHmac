@@ -1,7 +1,7 @@
 defmodule ExHmac.Core do
   @moduledoc false
 
-  alias ExHmac.{Checker, Hook, Noncer, Signer, Util}
+  alias ExHmac.{Callback, Checker, Hook, Noncer, Signer, Util}
 
   def do_check_hmac(args, exec_block, config)
       when is_list(args) and is_function(exec_block) do
@@ -31,21 +31,8 @@ defmodule ExHmac.Core do
 
   ###
   def get_access_key(args, config) do
-    %ExHmac.Config{
-      impl_m: impl_m,
-      get_access_key_fun_name: get_access_key_fun_name,
-      access_key_name: access_key_name
-    } = config
-
-    if function_exported?(impl_m, get_access_key_fun_name, 1) do
-      apply(impl_m, get_access_key_fun_name, [args])
-    else
-      Keyword.fetch(args, access_key_name)
-    end
-    |> case do
-      {:ok, access_key} -> access_key
-      other -> other
-    end
+    args
+    |> Callback.get_access_key(config)
     |> case do
       access_key when is_bitstring(access_key) and access_key != "" -> access_key
       :error -> :not_found_access_key
@@ -67,18 +54,7 @@ defmodule ExHmac.Core do
   end
 
   ###
-  def fmt_resp(resp, config) do
-    with(
-      %ExHmac.Config{impl_m: impl_m} <- config,
-      {f, a} <- __ENV__.function,
-      true <- function_exported?(impl_m, f, a - 1),
-      resp <- apply(impl_m, f, [resp])
-    ) do
-      {:fmt, resp}
-    else
-      false -> {:default, resp}
-    end
-  end
+  def fmt_resp(resp, config), do: Callback.fmt_resp(resp, config)
 
   def make_resp_with_hmac({:default, resp}, config) do
     resp_data_name = get_resp_data_name(resp, config)
@@ -113,15 +89,12 @@ defmodule ExHmac.Core do
   end
 
   def make_resp_with_hmac_args(resp, config) do
-    with %ExHmac.Config{
-           timestamp_name: timestamp_name,
-           nonce_name: nonce_name
-         } <- config do
-      []
-      |> Keyword.put(timestamp_name, gen_timestamp(config))
-      |> Keyword.put(nonce_name, gen_nonce(config))
-      |> Keyword.merge(resp)
-    end
+    %ExHmac.Config{timestamp_name: timestamp_name, nonce_name: nonce_name} = config
+
+    []
+    |> Keyword.put(timestamp_name, gen_timestamp(config))
+    |> Keyword.put(nonce_name, gen_nonce(config))
+    |> Keyword.merge(resp)
   end
 
   def put_signature(args, signature, config) do
@@ -176,33 +149,22 @@ defmodule ExHmac.Core do
 
   ###
   def sign(args, access_key, secret_key, config) do
-    with(
-      %ExHmac.Config{
-        impl_m: impl_m,
-        make_sign_string_fun_name: make_sign_string_fun_name
-      } <- config,
-      true <- function_exported?(impl_m, make_sign_string_fun_name, 3)
-    ) do
-      apply(impl_m, make_sign_string_fun_name, [args, access_key, secret_key])
-    else
-      false -> Signer.make_sign_string(args, access_key, secret_key, config)
+    args
+    |> Callback.make_sign_string(access_key, secret_key, config)
+    |> case do
+      :default -> Signer.make_sign_string(args, access_key, secret_key, config)
+      sign_string -> sign_string
     end
     |> do_sign(access_key, config)
   end
 
   def do_sign(sign_string, access_key, config) do
-    %ExHmac.Config{
-      impl_m: impl_m,
-      hash_alg: hash_alg,
-      encode_hash_result_fun_name: encode_hash_result_fun_name
-    } = config
+    %ExHmac.Config{hash_alg: hash_alg} = config
 
     with(
       contain_hmac? <- Util.contain_hmac?(hash_alg),
       hash_alg <- Util.prune_hash_alg(hash_alg),
-      exported_encode? <- function_exported?(impl_m, encode_hash_result_fun_name, 1),
-      encode <- fn hash_result -> apply(impl_m, encode_hash_result_fun_name, [hash_result]) end,
-      encode <- (exported_encode? && encode) || nil
+      encode <- Callback.encode_hash_result(config)
     ) do
       Signer.do_sign(sign_string, hash_alg, {contain_hmac?, access_key}, encode)
     end
