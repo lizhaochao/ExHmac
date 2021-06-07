@@ -3,6 +3,7 @@ defmodule ExHmac.Use do
 
   alias ExHmac.{Config, Util}
   alias ExHmac.Core
+  alias ExHmac.Use.Helper
 
   defmacro __using__(opts) do
     config = opts |> Config.get_config() |> Macro.escape()
@@ -12,10 +13,8 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             config <- unquote(config) |> Core.put_impl_m(__MODULE__) |> Core.save_config(),
-             :ok <- Core.check_timestamp(args, config),
-             :ok <- Core.check_nonce(args, config),
-             :ok <- Core.check_signature(args, access_key, secret_key, config) do
+             config <- Helper.pre_config(unquote(config), __MODULE__),
+             :ok <- Core.do_check_hmac(args, access_key, secret_key, config) do
           :ok
         else
           err -> err
@@ -26,24 +25,16 @@ defmodule ExHmac.Use do
           when (is_list(args) or is_map(args)) and is_bitstring(access_key) and
                  is_bitstring(secret_key) do
         with args <- args |> Util.to_atom_key() |> Util.to_keyword(),
-             config <- unquote(config) |> Core.put_impl_m(__MODULE__) |> Core.save_config() do
+             config <- Helper.pre_config(unquote(config), __MODULE__) do
           Core.sign(args, access_key, secret_key, config)
         end
       end
 
-      def gen_timestamp do
-        unquote(config)
-        |> Core.put_impl_m(__MODULE__)
-        |> Core.save_config()
-        |> Core.gen_timestamp()
-      end
+      def gen_timestamp,
+        do: unquote(config) |> Helper.pre_config(__MODULE__) |> Core.gen_timestamp()
 
-      def gen_nonce do
-        unquote(config)
-        |> Core.put_impl_m(__MODULE__)
-        |> Core.save_config()
-        |> Core.gen_nonce()
-      end
+      def gen_nonce,
+        do: unquote(config) |> Helper.pre_config(__MODULE__) |> Core.gen_nonce()
     end
   end
 end
