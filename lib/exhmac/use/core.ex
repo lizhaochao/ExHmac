@@ -1,4 +1,4 @@
-defmodule ExHmac.Use.Helper do
+defmodule ExHmac.Core do
   @moduledoc false
 
   alias ExHmac.{Checker, Noncer, Repo, Signer, Util}
