@@ -13,7 +13,7 @@ defmodule ExHmac.Use.Helper do
       name
       |> to_string()
       |> case do
-        "_" <> _rest = str_name -> String.slice(str_name, 1, String.length(str_name) - 1)
+        "_" <> str_name -> str_name
         str_name -> str_name
       end
       |> String.to_atom()

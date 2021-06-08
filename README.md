@@ -140,6 +140,16 @@ config :exhmac, :gc_log_callback, &MyHmac.gc_log/1
 ```
 `NOTICE`: `precision` & `nonce_freezing_secs` set 2 places, once you don't want to use default values.
 
+## Benchmark
+```bash
+mix bench
+## ExHmacBench
+benchmark name    iterations   average time 
+get_access_key/2    10000000   0.20 µs/op
+make_arg_names/1     1000000   1.46 µs/op
+sign/4                100000   16.49 µs/op
+```
+
 ## Contributing
 Contributions to ExHmac are very welcome!
 

@@ -48,7 +48,9 @@ defmodule ExHmac.Util do
   end
 
   def log(level, [type | _] = content, log_color) do
-    Logger.log(level, fn -> content end, ansi_color: log_color.(level, type))
+    if Application.get_env(:exhmac, :log, true) do
+      Logger.log(level, fn -> content end, ansi_color: log_color.(level, type))
+    end
   end
 
   ###

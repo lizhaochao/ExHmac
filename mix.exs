@@ -6,7 +6,7 @@ defmodule ExHmac.MixProject do
   @gitee_repo_url "https://gitee.com/lizhaochao/exhmac"
   @github_repo_url "https://github.com/lizhaochao/exhmac"
 
-  @version "1.1.1"
+  @version "1.1.2"
 
   def project do
     [
@@ -53,7 +53,8 @@ defmodule ExHmac.MixProject do
       {:propcheck, "~> 1.4.0", only: :test},
       {:credo, "~> 1.5.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.24.2", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.1.0", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.1.0", only: :dev, runtime: false},
+      {:benchfella, "~> 0.3.5", only: :dev}
     ]
   end
 
@@ -66,5 +67,5 @@ defmodule ExHmac.MixProject do
     ]
   end
 
-  defp aliases, do: [test: ["format", "test"]]
+  defp aliases, do: [test: ["format", "test"], bench: ["format", "bench"]]
 end
