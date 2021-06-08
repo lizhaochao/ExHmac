@@ -139,7 +139,28 @@ config :exhmac, :gc_warn_count, 10
 config :exhmac, :gc_log_callback, &MyHmac.gc_log/1
 ```
 `NOTICE`: `precision` & `nonce_freezing_secs` set 2 places, once you don't want to use default values.
+## Noncer
+**What Is Noncer?**
 
+Actually Noncer is a in-memory cache. It store all nonces and its arrived at timestamp. 
+
+Not only a cache, Using nonce info in cache that Noncer can ensure nonce safe for duration you set.
+
+**Don't worry about garbage. Noncer has GC.**
+
+Also you can disable Noncer via config. as following:
+```elixir
+config :exhmac, :disable_noncer, true
+```
+Use your own implements, just implements callback `check_nonce/4`, as following:
+
+```elixir
+def check_nonce(nonce, curr_ts, nonce_freezing_secs, precision) do
+  # precision: :second or :millisecond
+  arrived_at = RedisCache.getset(nonce, curr_ts)
+  # your check logic
+end
+```
 ## Benchmark
 ```bash
 mix bench
