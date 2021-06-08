@@ -86,7 +86,7 @@ defmodule ExHmac do
   # :sha256
   :crypto.hash(:sha256, "sign string")
   # :hmac_sha256
-  :crypto.mac(:hmac, :sha256, "access_key", "sign string")
+  :crypto.mac(:hmac, :sha256, "secret_key", "sign string")
   ```
 
   ### Hooks
