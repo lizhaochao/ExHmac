@@ -88,6 +88,14 @@ iex> # start request & get check response result
 - `:blake2s` & `:hmac_blake2s`
 - `:md5` & `:hmac_md5`
 
+Implements:
+```elixir
+# :sha256
+:crypto.hash(:sha256, "sign string")
+# :hmac_sha256
+:crypto.mac(:hmac, :sha256, "access_key", "sign string")
+```
+
 ### Hooks
 - `pre_hook/1`, before check hmac, give you origin args with keyword.
 - `post_hook/1`, after check hmac, this output is final.
