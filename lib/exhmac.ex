@@ -93,7 +93,7 @@ defmodule ExHmac do
   - `pre_hook/1`, before check hmac, give you origin args with keyword.
   - `post_hook/1`, after check hmac, this output is final.
 
-  These hokks only effect decorator & defhmac.
+  These hooks only effect decorator & defhmac situation.
 
   ### Callbacks
   - `get_access_key/1`, get/evaluate access key from input args.
@@ -145,7 +145,9 @@ defmodule ExHmac do
   ```elixir
   config :exhmac, :disable_noncer, true
   ```
-  Use your own implements, just implements callback `check_nonce/4`, as following:
+  Implements it on API Gateway.
+
+  Or just implements callback `check_nonce/4`, as following:
 
   ```elixir
   def check_nonce(nonce, curr_ts, nonce_freezing_secs, precision) do
