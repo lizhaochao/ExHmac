@@ -32,13 +32,14 @@ Here’s a commented example.
 ```elixir
 # Use ExHmac like this in Your Project.
 iex> defmodule YourProject do
-...>   # inject hmac functions to current scope via use ExHmac.
 ...>   use ExHmac, precision: :millisecond
+...>   # gen_timestamp/0 and gen_nonce/0 are imported by ExHmac.
+...>   # sign/3 is imported by ExHmac.
+...>   # check_hmac/3 is imported by ExHmac.
 ...>
 ...>   @access_key "exhmac_key"
 ...>   @secret_key "exhmac_secret"
 ...>
-...>   # use gen_timestamp/0, gen_nonce/0 to make params.
 ...>   def make_params(name) do
 ...>     [name: name, timestamp: gen_timestamp(), nonce: gen_nonce()]
 ...>   end
