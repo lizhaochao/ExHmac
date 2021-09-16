@@ -12,7 +12,7 @@ defmodule ExHmac.Use.Defhmac do
         with(
           config <- unquote(opts) |> Config.get_config() |> Helper.put_impl_m(__MODULE__),
           _ <- Helper.pre_check(config),
-          {f, a, guard} <- Parser.parser(call)
+          {f, a, guard} <- Parser.parse(call)
         ) do
           Self.make_function(f, a, guard, block, config)
         end
